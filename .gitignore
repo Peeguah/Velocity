@@ -227,3 +227,4 @@ UpgradeLog*.htm
 # Eclipse
 .cproject
 .project
+.DS_Store
