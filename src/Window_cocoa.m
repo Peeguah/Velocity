@@ -20,6 +20,24 @@ static NSView* viewHandle;
 static cc_bool canCheckOcclusion;
 static cc_bool legacy_fullscreen;
 static cc_bool scroll_debugging;
+static NSObject<NSApplicationDelegate>* appDelegate;
+
+@interface CCAppDelegate : NSObject <NSApplicationDelegate>
+@end
+
+@implementation CCAppDelegate
+
+- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender {
+    Window_RequestClose();
+    return NSTerminateCancel;
+}
+
+- (BOOL)applicationShouldHandleReopen:(NSApplication *)app hasVisibleWindows:(BOOL)flag {
+    if (winHandle) [winHandle makeKeyAndOrderFront:nil];
+    return YES;
+}
+
+@end
 
 #if defined MAC_OS_X_VERSION_10_12 && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_12
 	#define WIN_MASK (NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable | NSWindowStyleMaskMiniaturizable)
@@ -186,6 +204,26 @@ void Window_PreInit(void) {
 	DisplayInfo.CursorVisible = true;
 }
 
+static void CreateMenuBar(void) {
+    NSMenu* bar = [[NSMenu alloc] init];
+    NSMenuItem* appItem = [[NSMenuItem alloc] init];
+    [bar addItem:appItem];
+    [NSApp setMainMenu:bar];
+
+    NSMenu* appMenu = [[NSMenu alloc] init];
+    NSString* name = [[NSProcessInfo processInfo] processName];
+    NSString* quitTitle = [@"Quit " stringByAppendingString:name];
+
+    NSMenuItem* quit = [[NSMenuItem alloc]
+        initWithTitle:quitTitle
+               action:@selector(terminate:)
+        keyEquivalent:@"q"];
+
+    [appMenu addItem:quit];
+    [appItem setSubmenu:appMenu];
+}
+
+
 static NSAutoreleasePool* pool;
 void Window_Init(void) {
 	Input.Sources = INPUT_SOURCE_NORMAL;
@@ -193,6 +231,10 @@ void Window_Init(void) {
 	// https://www.cocoawithlove.com/2009/01/demystifying-nsapplication-by.html
 	pool = [[NSAutoreleasePool alloc] init];
 	appHandle = [NSApplication sharedApplication];
+	[appHandle finishLaunching];
+	appDelegate = [CCAppDelegate new];
+	[appHandle setDelegate:appDelegate];
+	CreateMenuBar(); 
 	[appHandle activateIgnoringOtherApps:YES];
 
 	CGDirectDisplayID display = CGMainDisplayID();
@@ -325,6 +367,10 @@ static void MakeContentView(void) {
 
 	viewHandle = [CCView alloc];
 	[viewHandle initWithFrame:rect];
+	[viewHandle setWantsLayer:YES];
+	if ([viewHandle respondsToSelector:@selector(setWantsBestResolutionOpenGLSurface:)]) {
+    [viewHandle setWantsBestResolutionOpenGLSurface:YES];
+}
 	[winHandle setContentView:viewHandle];
 }
 
@@ -376,8 +422,8 @@ static void DoCreateWindow(int width, int height) {
 
 	scroll_debugging = Options_GetBool("scroll-debug", false);
 	// for quit buttons in dock and menubar
-	AEInstallEventHandler(kCoreEventClass, kAEQuitApplication,
-		NewAEEventHandlerUPP(HandleQuitMessage), 0, false);
+	// AEInstallEventHandler(kCoreEventClass, kAEQuitApplication,
+	// 	NewAEEventHandlerUPP(HandleQuitMessage), 0, false);
 	
 	Window_Main.Exists     = true;
 	Window_Main.Handle.ptr = winHandle;
@@ -390,6 +436,13 @@ static void DoCreateWindow(int width, int height) {
 	RefreshWindowBounds();
 	MakeContentView();
 	ApplyIcon();
+
+	if ([winHandle respondsToSelector:@selector(backingScaleFactor)]) {
+    	CGFloat scale = [winHandle backingScaleFactor];
+    	DisplayInfo.ScaleX = scale;
+    	DisplayInfo.ScaleY = scale;
+	}
+
 
 	canCheckOcclusion = [winHandle respondsToSelector:@selector(occlusionState)];
 }

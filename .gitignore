@@ -228,3 +228,9 @@ UpgradeLog*.htm
 .cproject
 .project
 .DS_Store
+.DS_Store
+.DS_Store
+.github/.DS_Store
+misc/.DS_Store
+src/.DS_Store
+third_party/.DS_Store
