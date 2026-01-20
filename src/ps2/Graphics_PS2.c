@@ -14,6 +14,7 @@
 #include <draw.h>
 #include <draw3d.h>
 #include <malloc.h>
+#include "gs_gpu.h"
 
 #define QWORD_ALIGNED CC_ALIGNED(16)
 
@@ -167,11 +168,14 @@ void Gfx_Free(void) {
 	Gfx_FreeState();
 }
 
-static CC_INLINE void DMAFlushBuffer(void) {
-	if (Q == dma_beg) return;
+static void FlushMainDMABuffer(void) {
+	dma_wait_fast();
 
-	DMATAG_END(dma_beg, (Q - dma_beg) - 1, 0, 0, 0);
-	dma_channel_send_chain(DMA_CHANNEL_GIF, dma_beg, Q - dma_beg, 0, 0);
+	if (Q != dma_beg + 1) {
+		DMATAG_END(dma_beg, (Q - dma_beg) - 1, 0, 0, 0);
+		dma_channel_send_chain(DMA_CHANNEL_GIF, dma_beg, Q - dma_beg, 0, 0);
+	}
+	Q = dma_beg + 1;
 }
 
 
@@ -398,7 +402,7 @@ struct GPUTexture {
 
 static void UploadToVRAM(struct GPUTexture* tex, int dst_addr) {
 	// TODO terrible perf
-	DMAFlushBuffer();
+	FlushMainDMABuffer();
 	dma_wait_fast();
 
 	// 4bpp has extra garbage pixels when odd rows
@@ -408,9 +412,6 @@ static void UploadToVRAM(struct GPUTexture* tex, int dst_addr) {
 	int dst_stride = GS_TEXTURE_STRIDE(tex);
 	Gfx_TransferPixels(tex->pixels, src_w, src_h, 
 						tex->format, dst_addr, dst_stride);
-	
-	// TODO terrible perf
-	Q = dma_beg + 1;
 }
 
 static void ConvertTexture_Palette(cc_uint8* dst, struct Bitmap* bmp, int rowWidth, BitmapCol* palette, int pal_count) {
@@ -868,52 +869,6 @@ void Gfx_SetVertexFormat(VertexFormat fmt) {
 	formatDirty = true;
 }
 
-extern void ViewportTransform(VU0_vector* src, VU0_IVector* dst);
-static xyz_t FinishVertex(VU0_vector* src, float invW) {
-	src->w = invW;
-	VU0_IVector tmp;
-	ViewportTransform(src, &tmp);
-
-	xyz_t xyz;
-	xyz.x = (short)tmp.x;
-	xyz.y = (short)tmp.y;
-	xyz.z = tmp.z;
-	return xyz;
-}
-
-static u64* DrawTexturedTriangle(u64* dw, VU0_vector* coords, 
-								struct VertexTextured* V0, struct VertexTextured* V1, struct VertexTextured* V2) {
-	TexturedVertex* dst = (TexturedVertex*)dw;
-	float q;
-
-	// TODO optimise
-	// Add the "primitives" to the GIF packet
-	q   = 1.0f / coords[0].w;
-	dst[0].rgba  = V0->Col;
-	dst[0].q     = q;
-	dst[0].u     = V0->U * q;
-	dst[0].v     = V0->V * q;
-	dst[0].xyz   = FinishVertex(&coords[0], q);
-
-	q   = 1.0f / coords[1].w;
-	dst[1].rgba  = V1->Col;
-	dst[1].q     = q;
-	dst[1].u     = V1->U * q;
-	dst[1].v     = V1->V * q;
-	dst[1].xyz   = FinishVertex(&coords[1], q);
-
-	q   = 1.0f / coords[2].w;
-	dst[2].rgba  = V2->Col;
-	dst[2].q     = q;
-	dst[2].u     = V2->U * q;
-	dst[2].v     = V2->V * q;
-	dst[2].xyz   = FinishVertex(&coords[2], q);
-
-	return dw + 9;
-}
-
-extern void TransformTexturedQuad(void* src, VU0_vector* dst, VU0_vector* tmp, int* clip_flags);
-extern void TransformColouredQuad(void* src, VU0_vector* dst, VU0_vector* tmp, int* clip_flags);
 extern u64* DrawTexturedQuad(void* src, u64* dst, VU0_vector* tmp);
 extern u64* DrawColouredQuad(void* src, u64* dst, VU0_vector* tmp);
 
@@ -974,10 +929,9 @@ static void DrawTriangles(int verticesCount, int startVertex) {
 	if (stateDirty)  UpdateState(0);
 	if (formatDirty) UpdateFormat(0);
 
-	if ((Q - current->data) > 45000) {
-		DMAFlushBuffer();
+	if ((Q - current->data) > 40000) {
+		FlushMainDMABuffer();
 		dma_wait_fast();
-		Q = dma_beg + 1;
 		Platform_LogConst("Too much geometry!!");
 	}
 
@@ -1045,16 +999,14 @@ void Gfx_BeginFrame(void) {
 
 void Gfx_EndFrame(void) {
 	//Platform_LogConst("--- EF1 ---");
-
 	Q = draw_finish(Q);
 	
-	dma_wait_fast();
-	DMAFlushBuffer();
+	FlushMainDMABuffer();
 	//Platform_LogConst("--- EF2 ---");
 		
-	draw_wait_finish();
+	GS_wait_draw_finish();
 	//Platform_LogConst("--- EF3 ---");
-	if (gfx_vsync) graph_wait_vsync();
+	if (gfx_vsync) GS_wait_vsync();
 	
 	context ^= 1;
 	UpdateContext();

@@ -241,6 +241,16 @@ void Platform_LoadSysFonts(void) { }
 *#########################################################################################################################*/
 extern void interop_InitSockets(void);
 
+cc_bool SockAddr_ToString(const cc_sockaddr* addr, cc_string* dst) {
+	const char* str = (const char*)addr->data;
+
+	String_AppendUtf8(dst, str, String_Length(str));
+	String_Format1(dst, ":%i", &addr->size);
+	return true;
+}
+
+
+
 // not actually ipv4 address, just copies across hostname
 static cc_bool ParseIPv4(const cc_string* ip, int port, cc_sockaddr* dst) {
 	int len = String_EncodeUtf8(dst->data, ip);
@@ -443,6 +453,7 @@ static void web_main(void) {
 		// This needs to be called before Game_Setup, as that
 		//  in turn calls Game_Load -> Gfx_Create -> GLContext_SetVSync
 		// (which requires a main loop to already be running)
+		emscripten_cancel_main_loop();
 		emscripten_set_main_loop(DoNextFrame, 0, false);
 
 		Game_Setup();

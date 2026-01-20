@@ -484,10 +484,9 @@ void Clipboard_SetText(const cc_string* value) {
 	interop_TrySetClipboardText(str);
 }
 
+extern int interop_isInFullscreen(void);
 int Window_GetWindowState(void) {
-	EmscriptenFullscreenChangeEvent status = { 0 };
-	emscripten_get_fullscreen_status(&status);
-	return status.isFullscreen ? WINDOW_STATE_FULLSCREEN : WINDOW_STATE_NORMAL;
+	return interop_isInFullscreen() ? WINDOW_STATE_FULLSCREEN : WINDOW_STATE_NORMAL;
 }
 
 extern int interop_GetContainerID(void);
@@ -806,11 +805,11 @@ void GLContext_SetVSync(cc_bool vsync) {
 	}
 }
 
-extern void interop_GetGpuRenderer(char* buffer, int len);
+extern void CC_gpu_getRenderer(char* buffer, int len);
 void GLContext_GetApiInfo(cc_string* info) { 
 	char buffer[NATIVE_STR_LEN];
 	int len;
-	interop_GetGpuRenderer(buffer, NATIVE_STR_LEN);
+	CC_gpu_getRenderer(buffer, NATIVE_STR_LEN);
 
 	len = String_CalcLen(buffer, NATIVE_STR_LEN);
 	if (!len) return;

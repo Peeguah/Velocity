@@ -169,15 +169,28 @@ static void HttpConnection_Close(struct HttpConnection* conn) {
 static void ExtractHostPort(const struct HttpUrl* url, cc_string* host, cc_string* port) {
 	/* address can have the form of either "host" or "host:port" */
 	/* Slightly more complicated because IPv6 hosts can be e.g. [::1] */
-	const cc_string* addr = &url->address;
-	int idx = String_LastIndexOf(addr, ':');
+	cc_string addr = url->address;
+	int idx = String_IndexOf(&addr, ':');
+	int endIdx;
+
+	/* Special handling for raw IPv6 hosts, e.g. "[::1]:80" */
+	if (addr.length && addr.buffer[0] == '[' && (endIdx = String_IndexOf(&addr, ']')) >= 0) {
+		*host = String_UNSAFE_Substring(&addr, 1, endIdx - 1);
+		addr  = String_UNSAFE_SubstringAt(&addr, endIdx + 1);
+
+		idx = String_IndexOf(&addr, ':');
+	} else if (idx == -1) {
+		/* Hostname/IP only */
+		*host = addr;
+	} else {
+		/* Hostname/IP:port */
+		*host = String_UNSAFE_Substring(&addr, 0, idx);
+	}
 
 	if (idx == -1) {
-		*host = *addr;
 		*port = String_Empty;
 	} else {
-		*host = String_UNSAFE_Substring(addr, 0, idx);
-		*port = String_UNSAFE_SubstringAt(addr, idx + 1);
+		*port = String_UNSAFE_SubstringAt(&addr, idx + 1);
 	}
 }
 
@@ -186,6 +199,8 @@ static cc_result HttpConnection_Open(struct HttpConnection* conn, const struct H
 	cc_uint16 portNum;
 	cc_result res;
 	cc_sockaddr addrs[SOCKET_MAX_ADDRS];
+	char addrBuf[32];
+	cc_string addrStr;
 	int i, numValidAddrs;
 
 	ExtractHostPort(url, &host, &port);
@@ -205,6 +220,9 @@ static cc_result HttpConnection_Open(struct HttpConnection* conn, const struct H
 		res = Socket_Create(&conn->socket, &addrs[i], false);
 		if (res) { HttpConnection_Close(conn); continue; }
 
+		String_InitArray(addrStr, addrBuf);
+		if (SockAddr_ToString(&addrs[i], &addrStr)) Platform_Log1("  Connecting to %s..", &addrStr);
+
 		res = Socket_Connect(conn->socket, &addrs[i]);
 		if (res) { HttpConnection_Close(conn); continue; }
 
@@ -215,6 +233,21 @@ static cc_result HttpConnection_Open(struct HttpConnection* conn, const struct H
 	conn->valid = true;
 	if (!url->https) return 0;
 	return SSL_Init(conn->socket, &host, &conn->sslCtx);
+}
+
+static cc_result WriteAllToSocket(cc_socket socket, const cc_uint8* data, cc_uint32 count) {
+	cc_uint32 sent;
+	cc_result res;
+
+	while (count)
+	{
+		if ((res = Socket_Write(socket, data, count, &sent))) return res;
+		if (!sent) return ERR_END_OF_STREAM;
+
+		data  += sent;
+		count -= sent;
+	}
+	return 0;
 }
 
 static cc_result HttpConnection_Read(struct HttpConnection* conn, cc_uint8* data, cc_uint32 count, cc_uint32* read) {
@@ -228,7 +261,7 @@ static cc_result HttpConnection_Write(struct HttpConnection* conn, const cc_uint
 	if (conn->sslCtx) 
 		return SSL_WriteAll(conn->sslCtx, data, count);
 
-	return Socket_WriteAll(conn->socket,  data, count);
+	return WriteAllToSocket(conn->socket, data, count);
 }
 
 

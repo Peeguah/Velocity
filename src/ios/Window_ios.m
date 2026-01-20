@@ -1,18 +1,15 @@
 // Silence deprecation warnings on modern iOS
 #define GLES_SILENCE_DEPRECATION
-#include "Core.h"
-
-#if defined CC_BUILD_IOS
-#include "_WindowBase.h"
-#include "Bitmap.h"
-#include "Input.h"
-#include "Platform.h"
-#include "String_.h"
-#include "Errors.h"
-#include "Drawer2D.h"
-#include "Launcher.h"
-#include "Funcs.h"
-#include "Gui.h"
+#include "../_WindowBase.h"
+#include "../Bitmap.h"
+#include "../Input.h"
+#include "../Platform.h"
+#include "../String_.h"
+#include "../Errors.h"
+#include "../Drawer2D.h"
+#include "../Launcher.h"
+#include "../Funcs.h"
+#include "../Gui.h"
 #include <mach-o/dyld.h>
 #include <sys/stat.h>
 #include <UIKit/UIKit.h>
@@ -30,7 +27,6 @@
 #endif
 
 // shared state with LBackend_ios.m and interop_ios.m
-UITextField* kb_widget;
 CGContextRef win_ctx;
 UIView* view_handle;
 UIViewController* cc_controller;
@@ -42,6 +38,14 @@ void LInput_SetPlaceholder(UITextField* fld, const char* placeholder);
 UIInterfaceOrientationMask SupportedOrientations(void);
 void LogUnhandledNSErrors(NSException* ex);
 
+
+static UITextField* kb_widget;
+void Window_SetKBWidget(UITextField* widget) {
+	if (kb_widget) [kb_widget autorelease];
+	
+	if (widget) [widget retain];
+	kb_widget = widget;
+}
 
 @interface CCWindow : UIWindow
 @end
@@ -142,13 +146,18 @@ static CGRect GetViewFrame(void) {
     return YES;
 }
 
-- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id)coordinator {
-    // viewWillTransitionToSize:withTransitionCoordinator - iOS 8
-    Window_Main.Width  = size.width;
-    Window_Main.Height = size.height;
-    
-    Event_RaiseVoid(&WindowEvents.Resized);
-    [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
+- (void)viewDidLayoutSubviews {
+    // viewDidLayoutSubviews - iOS 5
+	[super viewDidLayoutSubviews];
+
+	CGRect frame = [view_handle frame];
+	int width  = (int)frame.size.width;
+	int height = (int)frame.size.height;
+	if (width == Window_Main.Width && height == Window_Main.Height) return;
+	
+	Window_Main.Width  = width;
+	Window_Main.Height = height;
+	Event_RaiseVoid(&WindowEvents.Resized);
 }
 
 // ==== UIDocumentPickerDelegate ====
@@ -205,7 +214,7 @@ static cc_bool kb_active;
         can_shift = curFrame.origin.y > kbFrame.size.height;
     }
     if (can_shift) winFrame.origin.y = -kbFrame.size.height;
-    kb_widget = nil;
+    Window_SetKBWidget(nil);
     
     Platform_LogConst("APPEAR");
     [UIView animateWithDuration:interval delay: 0.0 options:curve animations:^{
@@ -217,7 +226,7 @@ static cc_bool kb_active;
     NSDictionary* info = [notification userInfo];
     if (!kb_active) return;
     kb_active = false;
-    kb_widget = nil;
+	Window_SetKBWidget(nil);
     
     double interval   = [[info objectForKey:UIKeyboardAnimationDurationUserInfoKey] doubleValue];
     NSInteger curve   = [[info objectForKey:UIKeyboardAnimationCurveUserInfoKey] integerValue];
@@ -287,40 +296,6 @@ void Window_Init(void) {
 }
 
 void Window_Free(void) { }
-
-static UIColor* CalcBackgroundColor(void) {
-    // default to purple if no themed background color yet
-    if (!Launcher_Theme.BackgroundColor)
-        return [UIColor purpleColor];
-    
-    return ToUIColor(Launcher_Theme.BackgroundColor, 1.0f);
-}
-
-static CGRect DoCreateWindow(void) {
-    // UIKeyboardWillShowNotification - iOS 2
-    cc_controller = [CCViewController alloc];
-    UpdateStatusBar();
-    
-    CGRect bounds = GetViewFrame();
-    win_handle    = [[CCWindow alloc] initWithFrame:bounds];
-    
-    UIColor* color = CalcBackgroundColor();
-    [win_handle setBackgroundColor:color];
-    [win_handle setRootViewController:cc_controller];
-    
-    Window_Main.Exists   = true;
-    Window_Main.UIScaleX = DEFAULT_UI_SCALE_X;
-    Window_Main.UIScaleY = DEFAULT_UI_SCALE_Y;
-
-    Window_Main.Width  = bounds.size.width;
-    Window_Main.Height = bounds.size.height;
-    Window_Main.SoftKeyboardInstant = true;
-    
-    NSNotificationCenter* notifications = [NSNotificationCenter defaultCenter];
-    [notifications addObserver:cc_controller selector:@selector(keyboardDidShow:) name:UIKeyboardWillShowNotification object:nil];
-    [notifications addObserver:cc_controller selector:@selector(keyboardDidHide:) name:UIKeyboardWillHideNotification object:nil];
-    return bounds;
-}
 void Window_SetSize(int width, int height) { }
 
 void Window_Show(void) {
@@ -344,35 +319,6 @@ void Gamepads_PreInit(void) { }
 void Gamepads_Init(void) { }
 
 void Gamepads_Process(float delta) { }
-
-void ShowDialogCore(const char* title, const char* msg) {
-    // UIAlertController - iOS 8
-    // UIAlertAction - iOS 8
-    // UIAlertView - iOS 2
-    Platform_LogConst(title);
-    Platform_LogConst(msg);
-    NSString* _title = [NSString stringWithCString:title encoding:NSASCIIStringEncoding];
-    NSString* _msg   = [NSString stringWithCString:msg encoding:NSASCIIStringEncoding];
-    alert_completed  = false;
-    
-#ifdef TARGET_OS_TV
-    UIAlertController* alert = [UIAlertController alertControllerWithTitle:_title message:_msg preferredStyle:UIAlertControllerStyleAlert];
-    UIAlertAction* okBtn     = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction* act) { alert_completed = true; }];
-    [alert addAction:okBtn];
-    [cc_controller presentViewController:alert animated:YES completion: Nil];
-#else
-    UIAlertView* alert = [UIAlertView alloc];
-    alert = [alert initWithTitle:_title message:_msg delegate:cc_controller cancelButtonTitle:@"OK" otherButtonTitles:nil];
-    [alert show];
-#endif
-    
-    // TODO clicking outside message box crashes launcher
-    // loop until alert is closed TODO avoid sleeping
-    while (!alert_completed) {
-        Window_ProcessEvents(0.0);
-        Thread_Sleep(16);
-    }
-}
 
 
 @interface CCKBController : NSObject<UITextFieldDelegate>
@@ -406,7 +352,7 @@ static CCKBController* kb_controller;
 void OnscreenKeyboard_Open(struct OpenKeyboardArgs* args) {
     if (!kb_controller) {
         kb_controller = [[CCKBController alloc] init];
-        CFBridgingRetain(kb_controller); // prevent GC TODO even needed?
+		// NOTE: don't need to call [retain], as retain count is initially 1
     }
     DisplayInfo.ShowingSoftKeyboard = true;
     
@@ -420,6 +366,8 @@ void OnscreenKeyboard_Open(struct OpenKeyboardArgs* args) {
     
     [view_handle addSubview:text_input];
     [text_input becomeFirstResponder];
+	
+	[text_input autorelease];
 }
 
 void OnscreenKeyboard_SetText(const cc_string* text) {
@@ -476,61 +424,6 @@ void Window_LockLandscapeOrientation(cc_bool lock) {
     [UIViewController attemptRotationToDeviceOrientation];
 }
 
-cc_result Window_OpenFileDialog(const struct OpenFileDialogArgs* args) {
-    // UIDocumentPickerViewController - iOS 8
-    // see the custom UTITypes declared in Info.plist 
-    NSDictionary* fileExt_map =
-    @{
-      @".cw"  : @"com.classicube.client.ios-cw",
-      @".dat" : @"com.classicube.client.ios-dat",
-      @".lvl" : @"com.classicube.client.ios-lvl",
-      @".fcm" : @"com.classicube.client.ios-fcm",
-      @".zip" : @"public.zip-archive"
-    };
-    NSMutableArray* types = [NSMutableArray array];
-    const char* const* filters = args->filters;
-
-    for (int i = 0; filters[i]; i++) 
-    {
-        NSString* fileExt = [NSString stringWithUTF8String:filters[i]];
-        NSString* utType  = [fileExt_map objectForKey:fileExt];
-        if (utType) [types addObject:utType];
-    }
-    
-    UIDocumentPickerViewController* dlg;
-    dlg = [UIDocumentPickerViewController alloc];
-    dlg = [dlg initWithDocumentTypes:types inMode:UIDocumentPickerModeOpen];
-    //dlg = [dlg initWithDocumentTypes:types inMode:UIDocumentPickerModeImport];
-    
-    open_dlg_callback = args->Callback;
-    [dlg setDelegate:cc_controller];
-    [cc_controller presentViewController:dlg animated:YES completion: Nil];
-    return 0; // TODO still unfinished
-}
-
-cc_result Window_SaveFileDialog(const struct SaveFileDialogArgs* args) {
-    if (!args->defaultName.length) return SFD_ERR_NEED_DEFAULT_NAME;
-    // UIDocumentPickerViewController - iOS 8
-    
-    // save the item to a temp file, which is then (usually) later deleted by picker callbacks
-    Directory_Create2(FILEPATH_RAW("Exported"));
-    
-    save_path.length = 0;
-    String_Format2(&save_path, "Exported/%s%c", &args->defaultName, args->filters[0]);
-    args->Callback(&save_path);
-    
-    NSString* str = ToNSString(&save_path);
-    NSURL* url    = [NSURL fileURLWithPath:str isDirectory:NO];
-    
-    UIDocumentPickerViewController* dlg;
-    dlg = [UIDocumentPickerViewController alloc];
-    dlg = [dlg initWithURL:url inMode:UIDocumentPickerModeExportToService];
-    
-    [dlg setDelegate:cc_controller];
-    [cc_controller presentViewController:dlg animated:YES completion: Nil];
-    return 0;
-}
-
 
 /*#########################################################################################################################*
  *-----------------------------------------------------Window creation-----------------------------------------------------*
@@ -539,27 +432,170 @@ cc_result Window_SaveFileDialog(const struct SaveFileDialogArgs* args) {
 @end
 static void Init3DLayer(void);
 
+static UIColor* CalcBackgroundColor(void) {
+	// default to purple if no themed background color yet
+	if (!Launcher_Theme.BackgroundColor)
+		return [UIColor redColor];
+	
+	return ToUIColor(Launcher_Theme.BackgroundColor, 1.0f);
+}
+
+static void AllocWindow(void) {
+	// UIKeyboardWillShowNotification - iOS 2
+	if (cc_controller) return;
+	cc_controller = [CCViewController alloc];
+	// NOTE: don't need to call [retain], as retain count is initially 1
+	
+	CGRect bounds = GetViewFrame();
+	win_handle    = [[CCWindow alloc] initWithFrame:bounds];
+	[win_handle setRootViewController:cc_controller];
+	
+	Window_Main.Exists   = true;
+	Window_Main.UIScaleX = DEFAULT_UI_SCALE_X;
+	Window_Main.UIScaleY = DEFAULT_UI_SCALE_Y;
+	
+	Window_Main.Width  = bounds.size.width;
+	Window_Main.Height = bounds.size.height;
+	Window_Main.SoftKeyboardInstant = true;
+	
+	NSNotificationCenter* notifications = [NSNotificationCenter defaultCenter];
+	[notifications addObserver:cc_controller selector:@selector(keyboardDidShow:) name:UIKeyboardWillShowNotification object:nil];
+	[notifications addObserver:cc_controller selector:@selector(keyboardDidHide:) name:UIKeyboardWillHideNotification object:nil];
+}
+
+static void DoCreateWindow(void) {
+	AllocWindow();
+	UpdateStatusBar();
+	
+	UIColor* color = CalcBackgroundColor();
+	[win_handle setBackgroundColor:color];
+}
+
+static void SetRootView(UIView* view) {
+	view_handle = view;
+	[view setMultipleTouchEnabled:YES];
+	[cc_controller setView:view];
+	
+	// Required, otherwise view doesn't rotate with device anymore after going in-game
+	[win_handle setRootViewController:nil];
+	[win_handle setRootViewController:cc_controller];
+}
+
 void Window_Create2D(int width, int height) {
     Window_Main.Is3D = false;
-    CGRect bounds = DoCreateWindow();
-    
-    view_handle = [[UIView alloc] initWithFrame:bounds];
-    [view_handle setMultipleTouchEnabled:YES];
-    [cc_controller setView:view_handle];
+    DoCreateWindow();
+	
+    UIView* view = [[UIView alloc] initWithFrame:CGRectZero];
+	SetRootView(view);
+	
+	[view autorelease];
 }
 
 void Window_Create3D(int width, int height) {
     Window_Main.Is3D = true;
-    CGRect bounds = DoCreateWindow();
-    
-    view_handle = [[CC3DView alloc] initWithFrame:bounds];
-    [view_handle setMultipleTouchEnabled:YES];
-    [cc_controller setView:view_handle];
-
+    DoCreateWindow();
+	
+    CC3DView* view = [[CC3DView alloc] initWithFrame:CGRectZero];
+	SetRootView(view);
     Init3DLayer();
+	
+	[view autorelease];
 }
 
 void Window_Destroy(void) { }
+
+
+/*########################################################################################################################*
+ *--------------------------------------------------------Dialogs---------------------------------------------------------*
+ *#########################################################################################################################*/
+void ShowDialogCore(const char* title, const char* msg) {
+	// UIAlertController - iOS 8
+	// UIAlertAction - iOS 8
+	// UIAlertView - iOS 2
+	Platform_LogConst(title);
+	Platform_LogConst(msg);
+	NSString* _title = [NSString stringWithCString:title encoding:NSASCIIStringEncoding];
+	NSString* _msg   = [NSString stringWithCString:msg encoding:NSASCIIStringEncoding];
+	alert_completed  = false;
+	
+#ifdef TARGET_OS_TV
+	UIAlertController* alert = [UIAlertController alertControllerWithTitle:_title message:_msg preferredStyle:UIAlertControllerStyleAlert];
+	UIAlertAction* okBtn     = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction* act) { alert_completed = true; }];
+	[alert addAction:okBtn];
+	[cc_controller presentViewController:alert animated:YES completion: Nil];
+#else
+	UIAlertView* alert = [UIAlertView alloc];
+	alert = [alert initWithTitle:_title message:_msg delegate:cc_controller cancelButtonTitle:@"OK" otherButtonTitles:nil];
+	[alert show];
+	[alert autorelease];
+#endif
+	
+	// TODO clicking outside message box crashes launcher
+	// loop until alert is closed TODO avoid sleeping
+	while (!alert_completed) {
+		Window_ProcessEvents(0.0);
+		Thread_Sleep(16);
+	}
+}
+
+cc_result Window_OpenFileDialog(const struct OpenFileDialogArgs* args) {
+	// UIDocumentPickerViewController - iOS 8
+	// see the custom UTITypes declared in Info.plist
+	NSDictionary* fileExt_map =
+	@{
+	  @".cw"  : @"com.classicube.client.ios-cw",
+	  @".dat" : @"com.classicube.client.ios-dat",
+	  @".lvl" : @"com.classicube.client.ios-lvl",
+	  @".fcm" : @"com.classicube.client.ios-fcm",
+	  @".zip" : @"public.zip-archive"
+	  };
+	NSMutableArray* types = [NSMutableArray array];
+	const char* const* filters = args->filters;
+	
+	for (int i = 0; filters[i]; i++)
+	{
+		NSString* fileExt = [NSString stringWithUTF8String:filters[i]];
+		NSString* utType  = [fileExt_map objectForKey:fileExt];
+		if (utType) [types addObject:utType];
+	}
+	
+	UIDocumentPickerViewController* dlg;
+	dlg = [UIDocumentPickerViewController alloc];
+	dlg = [dlg initWithDocumentTypes:types inMode:UIDocumentPickerModeOpen];
+	//dlg = [dlg initWithDocumentTypes:types inMode:UIDocumentPickerModeImport];
+	
+	open_dlg_callback = args->Callback;
+	[dlg setDelegate:cc_controller];
+	[cc_controller presentViewController:dlg animated:YES completion: Nil];
+	
+	[dlg autorelease];
+	return 0; // TODO still unfinished
+}
+
+cc_result Window_SaveFileDialog(const struct SaveFileDialogArgs* args) {
+	if (!args->defaultName.length) return SFD_ERR_NEED_DEFAULT_NAME;
+	// UIDocumentPickerViewController - iOS 8
+	
+	// save the item to a temp file, which is then (usually) later deleted by picker callbacks
+	Directory_Create2(FILEPATH_RAW("Exported"));
+	
+	save_path.length = 0;
+	String_Format2(&save_path, "Exported/%s%c", &args->defaultName, args->filters[0]);
+	args->Callback(&save_path);
+	
+	NSString* str = ToNSString(&save_path);
+	NSURL* url    = [NSURL fileURLWithPath:str isDirectory:NO];
+	
+	UIDocumentPickerViewController* dlg;
+	dlg = [UIDocumentPickerViewController alloc];
+	dlg = [dlg initWithURL:url inMode:UIDocumentPickerModeExportToService];
+	
+	[dlg setDelegate:cc_controller];
+	[cc_controller presentViewController:dlg animated:YES completion: Nil];
+	
+	[dlg autorelease];
+	return 0;
+}
 
 
 /*########################################################################################################################*
@@ -624,14 +660,10 @@ void GLContext_Create(void) {
     
     // unlike other platforms, have to manually setup render framebuffer
     CreateFramebuffer();
+	[ctx_handle autorelease];
 }
                   
 void GLContext_Update(void) {
-    // trying to update renderbuffer here results in garbage output,
-    //  so do instead when layoutSubviews method is called
-}
-
-static void GLContext_OnLayout(void) {
     // only resize buffers when absolutely have to
     if (fb_width == Window_Main.Width && fb_height == Window_Main.Height) return;
     fb_width  = Window_Main.Width;
@@ -667,14 +699,8 @@ void GLContext_GetApiInfo(cc_string* info) { }
 
 
 @implementation CC3DView
-
 + (Class)layerClass {
     return [CAEAGLLayer class];
-}
-
-- (void)layoutSubviews {
-    [super layoutSubviews];
-    GLContext_OnLayout();
 }
 @end
 
@@ -715,5 +741,3 @@ void Window_FreeFramebuffer(struct Bitmap* bmp) {
     Mem_Free(bmp->scan0);
     CGContextRelease(win_ctx);
 }
-#endif
-

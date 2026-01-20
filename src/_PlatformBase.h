@@ -227,21 +227,6 @@ static CC_INLINE void SocketAddr_Set(cc_sockaddr* addr, const void* src, unsigne
 	addr->size = srcLen;
 }
 
-cc_result Socket_WriteAll(cc_socket socket, const cc_uint8* data, cc_uint32 count) {
-	cc_uint32 sent;
-	cc_result res;
-
-	while (count)
-	{
-		if ((res = Socket_Write(socket, data, count, &sent))) return res;
-		if (!sent) return ERR_END_OF_STREAM;
-
-		data  += sent;
-		count -= sent;
-	}
-	return 0;
-}
-
 
 /*########################################################################################################################*
 *-------------------------------------------------------Dynamic lib-------------------------------------------------------*
@@ -379,6 +364,13 @@ cc_result Platform_Decrypt(const void* data, int len, cc_string* dst) {
 *---------------------------------------------------------Socket----------------------------------------------------------*
 *#########################################################################################################################*/
 #ifdef CC_BUILD_NETWORKING
+/* Encodes port number in network (i.e. big endian) byte order) */
+static CC_INLINE cc_uint16 SockAddr_EncodePort(int port) {
+	cc_uint16 raw;
+	Stream_SetU16_BE((cc_uint8*)&raw, port);
+	return raw;
+}
+
 /* Parses IPv4 addresses in the form a.b.c.d */
 static CC_INLINE cc_bool ParseIPv4Address(const cc_string* addr, cc_uint32* ip) {
 	cc_string parts[5];
@@ -422,6 +414,16 @@ cc_result Socket_ParseAddress(const cc_string* address, int port, cc_sockaddr* a
 
 	*numValidAddrs = 0;
 	return ParseHost(str, port, addrs, numValidAddrs);
+}
+
+
+static CC_INLINE cc_bool IPv4_ToString(const void* ip, const void* port, cc_string* dst) {
+	int portNum = Stream_GetU16_BE(port);
+	char* rawIP = (char*)ip;
+
+	String_Format4(dst, "%b.%b.%b.%b", &rawIP[0], &rawIP[1], &rawIP[2], &rawIP[3]);
+	String_Format1(dst, ":%i", &portNum);
+	return true;
 }
 #endif
 

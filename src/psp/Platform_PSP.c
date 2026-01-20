@@ -72,12 +72,6 @@ cc_uint64 Stopwatch_ElapsedMicroseconds(cc_uint64 beg, cc_uint64 end) {
 void Platform_Log(const char* msg, int len) {
 	int fd = sceKernelStdout();
 	sceIoWrite(fd, msg, len);
-	
-	//sceIoDevctl("emulator:", 2, msg, len, NULL, 0);
-	//cc_string str = String_Init(msg, len, len);
-	//cc_file file = 0;
-	//File_Open(&file, &str);
-	//File_Close(file);	
 }
 
 TimeMS DateTime_CurrentUTC(void) {
@@ -330,6 +324,14 @@ void Waitable_WaitFor(void* handle, cc_uint32 milliseconds) {
 /*########################################################################################################################*
 *---------------------------------------------------------Socket----------------------------------------------------------*
 *#########################################################################################################################*/
+cc_bool SockAddr_ToString(const cc_sockaddr* addr, cc_string* dst) {
+	struct sockaddr_in* addr4 = (struct sockaddr_in*)addr->data;
+
+	if (addr4->sin_family == AF_INET) 
+		return IPv4_ToString(&addr4->sin_addr, &addr4->sin_port, dst);
+	return false;
+}
+
 static cc_bool ParseIPv4(const cc_string* ip, int port, cc_sockaddr* dst) {
 	struct sockaddr_in* addr4 = (struct sockaddr_in*)dst->data;
 	cc_uint32 ip_addr = 0;
@@ -337,7 +339,7 @@ static cc_bool ParseIPv4(const cc_string* ip, int port, cc_sockaddr* dst) {
 
 	addr4->sin_addr.s_addr = ip_addr;
 	addr4->sin_family      = AF_INET;
-	addr4->sin_port        = htons(port);
+	addr4->sin_port        = SockAddr_EncodePort(port);
 		
 	dst->size = sizeof(*addr4);
 	return true;
@@ -361,7 +363,7 @@ static cc_result ParseHost(const char* host, int port, cc_sockaddr* addrs, int* 
 	if (ret < 0) return ret;
 	
 	addr4->sin_family = AF_INET;
-	addr4->sin_port   = htons(port);
+	addr4->sin_port   = SockAddr_EncodePort(port);
 		
 	addrs[0].size  = sizeof(*addr4);
 	*numValidAddrs = 1;
@@ -453,40 +455,116 @@ cc_result Socket_GetLastError(cc_socket s) {
 /*########################################################################################################################*
 *--------------------------------------------------------Platform---------------------------------------------------------*
 *#########################################################################################################################*/
-static void InitNetworking(void) {
+#define NET_PROFILE_FIRST  1
+#define NET_PROFILE_LAST  23
+
+#define _ERROR_NETPARAM_BAD_NETCONF 0x80110601
+
+static int last_net_state = -1;
+
+static void DisplayNetState(int state) {
+	union SceNetApctlInfo net_name  = { 0 };
+	union SceNetApctlInfo net_ssid  = { 0 };
+
+	if (state == last_net_state) return;
+	last_net_state = state;
+
+	sceNetApctlGetInfo(PSP_NET_APCTL_INFO_PROFILE_NAME, &net_name);
+	sceNetApctlGetInfo(PSP_NET_APCTL_INFO_SSID,         &net_ssid);
+
+	cc_string str; char buffer[256];
+	String_InitArray_NT(str, buffer);
+	String_Format2(&str, "Profile name: %c\nNetwork SSID: %c\n\n", 
+						net_name.name, net_ssid.ssid);
+
+	switch (state)
+	{
+		case PSP_NET_APCTL_STATE_SCANNING: 
+			String_AppendConst(&str, "Scanning for network.."); break;
+		case PSP_NET_APCTL_STATE_JOINING: 
+			String_AppendConst(&str, "Joining network.."); break;
+		case PSP_NET_APCTL_STATE_GETTING_IP: 
+			String_AppendConst(&str, "Getting IP address.."); break;
+	}
+
+	buffer[str.length] = '\0';
+	VirtualDialog_Show("Connecting to network", buffer, true);
+
+	Platform_Log1("STATE: %i", &state);
+}
+
+static cc_bool InitNetworking(void) {
     sceUtilityLoadNetModule(PSP_NET_MODULE_COMMON);
     sceUtilityLoadNetModule(PSP_NET_MODULE_INET);    
     int res;
 
     res = sceNetInit(128 * 1024, 0x20, 4096, 0x20, 4096);
-    if (res < 0) { Platform_Log1("sceNetInit failed: %i", &res); return; }
+    if (res < 0) { Logger_SimpleWarn(res, "calling sceNetInit"); return false; }
 
     res = sceNetInetInit();
-    if (res < 0) { Platform_Log1("sceNetInetInit failed: %i", &res); return; }
+    if (res < 0) { Logger_SimpleWarn(res, "calling sceNetInetInit"); return false; }
 
     res = sceNetResolverInit();
-    if (res < 0) { Platform_Log1("sceNetResolverInit failed: %i", &res); return; }
+    if (res < 0) { Logger_SimpleWarn(res, "calling sceNetResolverInit"); return false; }
 
     res = sceNetApctlInit(10 * 1024, 0x30);
-    if (res < 0) { Platform_Log1("sceNetApctlInit failed: %i", &res); return; }
+    if (res < 0) { Logger_SimpleWarn(res, "calling sceNetApctlInit"); return false; }
     
-    res = sceNetApctlConnect(1); // 1 = first profile
-    if (res) { Platform_Log1("sceNetApctlConnect failed: %i", &res); return; }
+	for (int profile = NET_PROFILE_FIRST; profile <= NET_PROFILE_LAST; profile++)
+	{
+    	res = sceNetApctlConnect(profile);
+		// Invalid profile? Try with next one
+		if (res == _ERROR_NETPARAM_BAD_NETCONF && profile != NET_PROFILE_LAST) continue;
 
-    for (int try = 0; try < 20; try++) {
-        int state;
-        res = sceNetApctlGetState(&state);
-        if (res) { Platform_Log1("sceNetApctlGetState failed: %i", &res); return; }
+    	if (res) { Logger_SimpleWarn(res, "calling sceNetApctlConnect"); return false; }
+
+    	for (int try = 0; try < 200; try++) 
+		{
+        	int state;
+        	res = sceNetApctlGetState(&state);
+        	if (res) { Logger_SimpleWarn(res, "calling sceNetApctlGetState"); return false; }
         
-        if (state == PSP_NET_APCTL_STATE_GOT_IP) break;
+        	if (state == PSP_NET_APCTL_STATE_GOT_IP) return true;
+			DisplayNetState(state);
 
-        // not successful yet? try polling again in 50 ms
-        sceKernelDelayThread(50 * 1000);
-    }
+        	// not successful yet? try polling again in 50 ms
+        	sceKernelDelayThread(50 * 1000);
+    	}
+		break; // TODO auto fallback to next profile ?
+	}
+
+	Window_ShowDialog("WiFi setup failed", "Timed out establishing a WiFi connection");
+	return false;
+}
+
+static void DisplayNetworkDetails(void) {
+	union SceNetApctlInfo localip  = { 0 };
+	union SceNetApctlInfo netmask  = { 0 };
+	union SceNetApctlInfo gateway  = { 0 };
+	union SceNetApctlInfo prim_dns = { 0 };
+	union SceNetApctlInfo sec_dns  = { 0 };
+
+	sceNetApctlGetInfo(PSP_NET_APCTL_INFO_IP,         &localip);
+	sceNetApctlGetInfo(PSP_NET_APCTL_INFO_SUBNETMASK, &netmask);
+	sceNetApctlGetInfo(PSP_NET_APCTL_INFO_GATEWAY,    &gateway);
+	sceNetApctlGetInfo(PSP_NET_APCTL_INFO_PRIMDNS,    &prim_dns);
+	sceNetApctlGetInfo(PSP_NET_APCTL_INFO_SECDNS,     &sec_dns);
+
+
+	cc_string str; char buffer[256];
+	String_InitArray_NT(str, buffer);
+	String_Format3(&str, "IP address: %c\nGateway IP: %c\nNetmask %c\n", 
+							&localip.ip, &netmask.subNetMask, &gateway.gateway);
+	String_Format2(&str, "DNS server: %c, %c", 
+							&prim_dns.primaryDns, &sec_dns.	secondaryDns);
+
+	buffer[str.length] = '\0';
+	Window_ShowDialog("Networking details", buffer);
 }
 
 void Platform_Init(void) {
-	InitNetworking();
+	cc_bool net_ok = InitNetworking();
+	if (net_ok) DisplayNetworkDetails();
 	/*pspDebugSioInit();*/ 
 	
 	// Disabling FPU exceptions avoids sometimes crashing with this line in Physics.c

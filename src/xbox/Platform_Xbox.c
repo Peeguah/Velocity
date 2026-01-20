@@ -340,6 +340,14 @@ void Waitable_WaitFor(void* handle, cc_uint32 milliseconds) {
 /*########################################################################################################################*
 *---------------------------------------------------------Socket----------------------------------------------------------*
 *#########################################################################################################################*/
+cc_bool SockAddr_ToString(const cc_sockaddr* addr, cc_string* dst) {
+	struct sockaddr_in* addr4 = (struct sockaddr_in*)addr->data;
+
+	if (addr4->sin_family == AF_INET) 
+		return IPv4_ToString(&addr4->sin_addr, &addr4->sin_port, dst);
+	return false;
+}
+
 static cc_bool ParseIPv4(const cc_string* ip, int port, cc_sockaddr* dst) {
 	struct sockaddr_in* addr4 = (struct sockaddr_in*)dst->data;
 	cc_uint32 ip_addr = 0;
@@ -347,7 +355,7 @@ static cc_bool ParseIPv4(const cc_string* ip, int port, cc_sockaddr* dst) {
 
 	addr4->sin_addr.s_addr = ip_addr;
 	addr4->sin_family      = AF_INET;
-	addr4->sin_port        = htons(port);
+	addr4->sin_port        = SockAddr_EncodePort(port);
 		
 	dst->size = sizeof(*addr4);
 	return true;
@@ -473,14 +481,35 @@ static void InitHDD(void) {
 	Directory_Create2(root);
 }
 
-void Platform_Init(void) {
-	InitHDD();
-	Stopwatch_Init();
+extern struct netif *g_pnetif;
+static void InitNetworking(void) {
+	VirtualDialog_Show("Connecting to network..", "This may take up to 30 seconds", true);
+	char localip[32] = {0};
+	char netmask[32] = {0};
+	char gateway[32] = {0};
 
 #ifndef CC_BUILD_CXBX
 	int ret = nxNetInit(NULL);
-	if (ret) Logger_SimpleWarn(ret, "setting up network");
+	if (ret) { 
+		Logger_SimpleWarn(ret, "setting up network");
+	} else {
+		cc_string str; char buffer[256];
+		String_InitArray_NT(str, buffer);
+		String_Format3(&str, "IP address: %c\nGateway IP: %c\nNetmask %c", 
+						ip4addr_ntoa_r(netif_ip4_addr(g_pnetif),    localip, 31),
+						ip4addr_ntoa_r(netif_ip4_gw(g_pnetif),      gateway, 31),
+						ip4addr_ntoa_r(netif_ip4_netmask(g_pnetif), netmask, 31));
+
+		buffer[str.length] = '\0';
+		Window_ShowDialog("Networking details", buffer);
+	}
 #endif
+}
+
+void Platform_Init(void) {
+	InitHDD();
+	Stopwatch_Init();
+	InitNetworking();
 }
 
 void Platform_Free(void) {

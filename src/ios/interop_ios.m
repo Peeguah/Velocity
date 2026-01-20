@@ -1,20 +1,17 @@
 // Silence deprecation warnings on modern iOS
 #define GLES_SILENCE_DEPRECATION
-#include "Core.h"
-
-#if defined CC_BUILD_IOS
-#include "Bitmap.h"
-#include "Input.h"
-#include "Platform.h"
-#include "String_.h"
-#include "Errors.h"
-#include "Drawer2D.h"
-#include "Launcher.h"
-#include "Funcs.h"
-#include "Gui.h"
-#include "Window.h"
-#include "Event.h"
-#include "Logger.h"
+#include "../Bitmap.h"
+#include "../Input.h"
+#include "../Platform.h"
+#include "../String_.h"
+#include "../Errors.h"
+#include "../Drawer2D.h"
+#include "../Launcher.h"
+#include "../Funcs.h"
+#include "../Gui.h"
+#include "../Window.h"
+#include "../Event.h"
+#include "../Logger.h"
 #include <mach-o/dyld.h>
 #include <sys/stat.h>
 #include <UIKit/UIKit.h>
@@ -45,7 +42,7 @@ void LogUnhandledNSErrors(NSException* ex);
 
 @implementation CCAppDelegate
 
-#include "main_impl.h"
+#include "../main_impl.h"
 - (void)runMainLoop {
     /* ClassiCube is sort of and sort of not the executable */
     /*  on iOS - UIKit is responsible for kickstarting the game. */
@@ -126,7 +123,8 @@ int main(int argc, char * argv[]) {
     NSSetUncaughtExceptionHandler(LogUnhandledNSErrors);
     
     @autoreleasepool {
-        return UIApplicationMain(argc, argv, nil, NSStringFromClass([CCAppDelegate class]));
+		NSString* className = NSStringFromClass([CCAppDelegate class]);
+        return UIApplicationMain(argc, argv, nil, className);
     }
 }
 
@@ -190,11 +188,13 @@ cc_result Updater_SetNewBuildTime(cc_uint64 t) { return ERR_NOT_SUPPORTED; }
  *#########################################################################################################################*/
 cc_result Process_StartOpen(const cc_string* args) {
     // openURL - iOS 2 (deprecated)
-    NSString* str = ToNSString(args);
+	NSString* str = ToNSString(args);
     NSURL* url    = [[NSURL alloc] initWithString:str];
 
     UIApplication* app = [UIApplication sharedApplication];
     [app openURL:url];
+	
+	[url autorelease];
     return 0;
 }
 
@@ -225,6 +225,8 @@ void Platform_ShareScreenshot(const cc_string* filename) {
     act = [UIActivityViewController alloc];
     act = [act initWithActivityItems:@[ @"Share screenshot via", img] applicationActivities:Nil];
     [cc_controller presentViewController:act animated:true completion:Nil];
+	
+	[act autorelease];
 }
 
 void GetDeviceUUID(cc_string* str) {
@@ -232,9 +234,10 @@ void GetDeviceUUID(cc_string* str) {
     UIDevice* device = [UIDevice currentDevice];
     
     if ([device respondsToSelector:@selector(identifierForVendor)]) {
-        NSString* string = [[device identifierForVendor] UUIDString];
+		NSUUID*   uuid   = [device identifierForVendor];
+        NSString* string = [uuid UUIDString];
         // TODO avoid code duplication
-        const char* src = string.UTF8String;
+        const char* src = [string UTF8String];
         String_AppendUtf8(str, src, String_Length(src));
     }
     // TODO find a pre iOS 6 solution
@@ -243,7 +246,7 @@ void GetDeviceUUID(cc_string* str) {
 void Directory_GetCachePath(cc_string* path) {
     // NSSearchPathForDirectoriesInDomains - iOS 2
     NSArray* array = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
-    if (array.count <= 0) return;
+    if ([array count] <= 0) return;
     
     // try to use iOS app cache folder if possible
     // https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/FileSystemOverview/FileSystemOverview.html
@@ -260,6 +263,8 @@ void Directory_GetCachePath(cc_string* path) {
 #ifndef CC_BUILD_FREETYPE
 void interop_GetFontNames(struct StringsBuffer* buffer) {
     NSArray* families = [UIFont familyNames];
+	[families retain];
+	
     NSLog(@"Families: %@", families);
     char tmpBuffer[NATIVE_STR_LEN];
     cc_string tmp = String_FromArray(tmpBuffer);
@@ -271,7 +276,9 @@ void interop_GetFontNames(struct StringsBuffer* buffer) {
         StringsBuffer_Add(buffer, &tmp);
         tmp.length = 0;
     }
+	
     StringsBuffer_Sort(buffer);
+	[families autorelease];
 }
 
 #include "ExtMath.h"
@@ -394,15 +401,16 @@ void interop_SysTextDraw(struct DrawTextArgs* args, struct Context2D* ctx, int x
 }*/
  
  static void InitFont(struct FontDesc* desc, UIFont* font) {
-    desc->handle = CFBridgingRetain(font);
-    desc->height = Math_Ceil(Math_AbsF(font.ascender) + Math_AbsF(font.descender));
+	desc->handle = [font retain];
+	desc->height = Math_Ceil(Math_AbsF(font.ascender) + Math_AbsF(font.descender));
 }
 
 static UIFont* TryCreateBoldFont(NSString* name, CGFloat uiSize) {
     NSArray* fontNames = [UIFont fontNamesForFamilyName:name];
     for (NSString* fontName in fontNames)
     {
-        if ([fontName rangeOfString:@"Bold" options:NSCaseInsensitiveSearch].location != NSNotFound)
+		NSRange boldRange = [fontName rangeOfString:@"Bold" options:NSCaseInsensitiveSearch];
+        if (boldRange.location != NSNotFound)
             return [UIFont fontWithName:fontName size:uiSize];
     }
     return nil;
@@ -433,11 +441,12 @@ void interop_SysMakeDefault(struct FontDesc* desc, int size, int flags) {
 }
 
 void interop_SysFontFree(void* handle) {
-    CFBridgingRelease(handle);
+	UIFont* font = (UIFont*)handle;
+	[font autorelease];
 }
 
-static NSMutableAttributedString* GetAttributedString(struct DrawTextArgs* args, cc_bool shadow) {
-    UIFont* font   = (__bridge UIFont*)args->font->handle;
+static NSMutableAttributedString* CreateAttributedString(struct DrawTextArgs* args, cc_bool shadow) {
+    UIFont* font   = (UIFont*)args->font->handle;
     cc_string left = args->text, part;
     char colorCode = 'f';
     NSMutableAttributedString* str = [[NSMutableAttributedString alloc] init];
@@ -465,7 +474,7 @@ static NSMutableAttributedString* GetAttributedString(struct DrawTextArgs* args,
 }
 
 int interop_SysTextWidth(struct DrawTextArgs* args) {
-    NSMutableAttributedString* str = GetAttributedString(args, false);
+    NSMutableAttributedString* str = CreateAttributedString(args, false);
     
     CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)str);
     CGRect bounds  = CTLineGetImageBounds(line, NULL);
@@ -474,12 +483,13 @@ int interop_SysTextWidth(struct DrawTextArgs* args) {
     double width = CTLineGetTypographicBounds(line, &ascent, &descent, &leading);
     
     CFRelease(line);
+	[str release];
     return Math_Ceil(width);
 }
 
 void interop_SysTextDraw(struct DrawTextArgs* args, struct Context2D* ctx, int x, int y, cc_bool shadow) {
-    UIFont* font = (__bridge UIFont*)args->font->handle;
-    NSMutableAttributedString* str = GetAttributedString(args, shadow);
+    UIFont* font = (UIFont*)args->font->handle;
+    NSMutableAttributedString* str = CreateAttributedString(args, shadow);
     
     float X = x, Y = y;
     if (shadow) { X += 1.3f; Y -= 1.3f; }
@@ -494,6 +504,7 @@ void interop_SysTextDraw(struct DrawTextArgs* args, struct Context2D* ctx, int x
     CGContextRelease(cg_ctx);
     
     CFRelease(line);
+	[str release];
 }
 
 /*void interop_SysTextDraw(struct DrawTextArgs* args, struct Context2D* ctx, int x, int y, cc_bool shadow) {
@@ -528,6 +539,4 @@ void interop_SysTextDraw(struct DrawTextArgs* args, struct Context2D* ctx, int x
     CTLineDraw(line, cg_ctx);
     CGContextRelease(cg_ctx);
 }*/
-#endif
-
 #endif

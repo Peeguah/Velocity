@@ -32,7 +32,7 @@
 	lv.s	S##mtx##03, 48(SRC); \
 	lv.s	S##mtx##13, 52(SRC); \
 	lv.s	S##mtx##23, 56(SRC); \
-	MAYBE_JUMP_RA;			 	\
+	MAYBE_JUMP_RA;			 	 \
 	lv.s	S##mtx##33, 60(SRC);
 
 // Write/Store matrix
@@ -87,6 +87,22 @@ BEG_FUNC(Clip_StoreMVP)
 END_FUNC(Clip_StoreMVP)
 
 
+
+BEG_FUNC(Clip_SetGuardbandScale)
+	#define SRC_X $a0
+	#define SRC_Y $a1
+
+	lv.s	S700, 0(SRC_X)
+	lv.s	S701, 0(SRC_Y)
+	vscl.q C200, C200, S700
+	jr 		$ra
+	vscl.q C210, C210, S701
+
+	#undef SRC_X
+	#undef SRC_Y
+END_FUNC(Clip_SetGuardbandScale)
+
+
 BEG_FUNC(Matrix_Mul2)
 	#define DST   $a0
 	#define SRC_L $a1
@@ -138,4 +154,3 @@ tex_next_iter:
 	#undef DST
 	#udnef END
 END_FUNC(TransformTexturedQuad)
-

@@ -185,10 +185,14 @@ endif
 ifeq ($(PLAT),wince)
 	CC      =  arm-mingw32ce-gcc
 	OEXT    =  .exe
-CFLAGS  += -march=armv5te -DUNICODE -D_WIN32_WCE -std=gnu99
+	CFLAGS  += -march=armv5te -DUNICODE -D_WIN32_WCE -std=gnu99
 	LDFLAGS =  -g
 	LIBS    =  -lcoredll -lws2
 	BUILD_DIR = build/wince
+endif
+
+ifeq ($(PLAT),os/2)
+	BUILD_DIR =	build/os2
 endif
 
 ifdef BUILD_SDL2
@@ -300,6 +304,7 @@ wiiu:
 	$(MAKE) -f misc/wiiu/Makefile
 switch:
 	$(MAKE) -f misc/switch/Makefile
+
 os/2:
 	$(MAKE) -f misc/os2/Makefile
 dos:
@@ -314,6 +319,8 @@ amiga:
 	$(MAKE) -f misc/amiga/Makefile
 atari_st:
 	$(MAKE) -f misc/atari_st/Makefile
+ios:
+	$(MAKE) -f misc/ios/Makefile
 
 # Cleans up all build .o files
 clean:
