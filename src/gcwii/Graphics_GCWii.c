@@ -1,3 +1,4 @@
+#define CC_DYNAMIC_VBS_ARE_STATIC
 #include "../_GraphicsBase.h"
 #include "../Errors.h"
 #include "../Logger.h"
@@ -183,7 +184,7 @@ GfxResourceID Gfx_AllocTexture(struct Bitmap* bmp, int rowWidth, cc_uint8 flags,
 	GX_InitTexObjFilterMode(&tex->obj, GX_NEAR, GX_NEAR);
 			
 	ReorderPixels(tex, bmp, 0, 0, rowWidth);
-	DCFlushRange(tex->pixels, size);
+	CPU_FlushDataCache(tex->pixels, size);
 	return tex;
 }
 
@@ -301,7 +302,8 @@ cc_result Gfx_TakeScreenshot(struct Stream* output) {
 	GX_CopyTex(buffer, GX_FALSE);
 	GX_PixModeSync();
 	GX_Flush();
-	DCFlushRange(buffer, width * height * 4);
+
+	CPU_InvalidateDataCache(buffer, width * height * 4);
 
 	struct Bitmap bmp;
 	bmp.scan0  = tmp;
@@ -394,27 +396,8 @@ void* Gfx_LockVb(GfxResourceID vb, VertexFormat fmt, int count) {
 
 void Gfx_UnlockVb(GfxResourceID vb) { 
 	gfx_vertices = vb; 
-	DCFlushRange(vb, vb_size);
+	CPU_FlushDataCache(vb, vb_size);
 }
-
-
-static GfxResourceID Gfx_AllocDynamicVb(VertexFormat fmt, int maxVertices) {
-	return memalign(16, maxVertices * strideSizes[fmt]);
-}
-
-void Gfx_BindDynamicVb(GfxResourceID vb) { Gfx_BindVb(vb); }
-
-void* Gfx_LockDynamicVb(GfxResourceID vb, VertexFormat fmt, int count) {
-	vb_size = count * strideSizes[fmt];
-	return vb; 
-}
-
-void Gfx_UnlockDynamicVb(GfxResourceID vb) { 
-	gfx_vertices = vb;
-	DCFlushRange(vb, vb_size);
-}
-
-void Gfx_DeleteDynamicVb(GfxResourceID* vb) { Gfx_DeleteVb(vb); }
 
 
 /*########################################################################################################################*

@@ -1,3 +1,4 @@
+#define CC_DYNAMIC_VBS_ARE_STATIC
 #include "../_GraphicsBase.h"
 #include "../Errors.h"
 #include "../Window.h"
@@ -256,11 +257,15 @@ static int CalcTransferBytes(int width, int height, int psm) {
 	return 0;
 }
 
-static qword_t* BuildTransfer(qword_t* q, u8* src, int width, int height, int psm, 
+static qword_t* PrepareTransfer(qword_t* q, u8* src, int width, int height, int psm, 
 								int dst_base, int dst_width)
 {
 	int  bytes = CalcTransferBytes(width, height, psm);
 	int qwords = (bytes + 15) / 16; // ceiling division by 16
+
+	CPU_FlushDataCache(src, bytes);
+	// TODO ucab memory? but this can run into obscure issues if memory range has ever been cached before..
+	// https://www.psx-place.com/threads/newlib-porting-challenges.26821/page-2
 
 	// Parameters for RAM -> GS transfer
 	DMATAG_CNT(q, 5, 0,0,0); q++;
@@ -301,7 +306,7 @@ void Gfx_TransferPixels(void* src, int width, int height,
 	packet_t* packet = packet_init(200, PACKET_NORMAL);
 	qword_t* q = packet->data;
 
-	q = BuildTransfer(q, src, width, height, format, dst_base, dst_stride);
+	q = PrepareTransfer(q, src, width, height, format, dst_base, dst_stride);
 	dma_channel_send_chain(DMA_CHANNEL_GIF, packet->data, q - packet->data, 0,0);
 	dma_wait_fast();
 
@@ -697,8 +702,8 @@ static VertexFormat buf_fmt;
 static int buf_count;
 
 // Precalculate all the vertex data adjustment
-static void PreprocessTexturedVertices(void) {
-    struct VertexTextured* v = gfx_vertices;
+static void PreprocessTexturedVertices(void* vertices) {
+    struct VertexTextured* v = vertices;
 
     for (int i = 0; i < buf_count; i++, v++)
     {
@@ -722,8 +727,8 @@ static void PreprocessTexturedVertices(void) {
     }
 }
 
-static void PreprocessColouredVertices(void) {
-    struct VertexColoured* v = gfx_vertices;
+static void PreprocessColouredVertices(void* vertices) {
+    struct VertexColoured* v = vertices;
 
     for (int i = 0; i < buf_count; i++, v++)
     {
@@ -736,7 +741,7 @@ static void PreprocessColouredVertices(void) {
 
 static GfxResourceID Gfx_AllocStaticVb(VertexFormat fmt, int count) {
 	//return Mem_TryAlloc(count, strideSizes[fmt]);
-	return memalign(16,count * strideSizes[fmt]);
+	return memalign(16, count * strideSizes[fmt]);
 	// align to 16 bytes, so DrawTexturedQuad/DrawColouredQuad can
 	//  load vertices using the "load quad (16 bytes)" instruction
 }
@@ -756,29 +761,12 @@ void* Gfx_LockVb(GfxResourceID vb, VertexFormat fmt, int count) {
 }
 
 void Gfx_UnlockVb(GfxResourceID vb) { 
-	gfx_vertices = vb;
-
     if (buf_fmt == VERTEX_FORMAT_TEXTURED) {
-        PreprocessTexturedVertices();
+        PreprocessTexturedVertices(vb);
     } else {
-        PreprocessColouredVertices();
+        PreprocessColouredVertices(vb);
     }
 }
-
-
-static GfxResourceID Gfx_AllocDynamicVb(VertexFormat fmt, int maxVertices) {
-	return Mem_TryAlloc(maxVertices, strideSizes[fmt]);
-}
-
-void Gfx_BindDynamicVb(GfxResourceID vb) { Gfx_BindVb(vb); }
-
-void* Gfx_LockDynamicVb(GfxResourceID vb, VertexFormat fmt, int count) {
-	return Gfx_LockVb(vb, fmt, count);
-}
-
-void Gfx_UnlockDynamicVb(GfxResourceID vb) { Gfx_UnlockVb(vb); }
-
-void Gfx_DeleteDynamicVb(GfxResourceID* vb) { Gfx_DeleteVb(vb); }
 
 
 /*########################################################################################################################*

@@ -1,3 +1,4 @@
+#define CC_DYNAMIC_VBS_ARE_STATIC
 #include "../_GraphicsBase.h"
 #include "../Errors.h"
 #include "../Logger.h"
@@ -681,6 +682,7 @@ void Gfx_DeleteIb(GfxResourceID* ib) { }
 *-------------------------------------------------------Vertex buffers----------------------------------------------------*
 *#########################################################################################################################*/
 static cc_uint8* gfx_vertices;
+static int vb_size;
 
 static GfxResourceID Gfx_AllocStaticVb(VertexFormat fmt, int count) {
 	return GPUBuffer_Alloc(count, strideSizes[fmt]);
@@ -696,32 +698,13 @@ void Gfx_DeleteVb(GfxResourceID* vb) { GPUBuffer_Unref(vb); }
 
 void* Gfx_LockVb(GfxResourceID vb, VertexFormat fmt, int count) {
 	struct GPUBuffer* buffer = (struct GPUBuffer*)vb;
+	vb_size = count * strideSizes[fmt];
 	return buffer->data;
 }
 
 void Gfx_UnlockVb(GfxResourceID vb) {
-	struct GPUBuffer* buffer = (struct GPUBuffer*)vb;
-	gfx_vertices = buffer->data;
+	CPU_FlushDataCache(vb, vb_size);
 }
-
-
-static GfxResourceID Gfx_AllocDynamicVb(VertexFormat fmt, int maxVertices) {
-	return GPUBuffer_Alloc(maxVertices, strideSizes[fmt]);
-}
-
-void Gfx_BindDynamicVb(GfxResourceID vb) { Gfx_BindVb(vb); }
-
-void* Gfx_LockDynamicVb(GfxResourceID vb, VertexFormat fmt, int count) { 
-	struct GPUBuffer* buffer = (struct GPUBuffer*)vb;
-	return buffer->data;
-}
-
-void Gfx_UnlockDynamicVb(GfxResourceID vb) {
-	struct GPUBuffer* buffer = (struct GPUBuffer*)vb;
-	gfx_vertices = buffer->data;
-}
-
-void Gfx_DeleteDynamicVb(GfxResourceID* vb) { Gfx_DeleteVb(vb); }
 
 
 /*########################################################################################################################*
