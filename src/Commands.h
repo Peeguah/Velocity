@@ -26,7 +26,7 @@ extern cc_bool NoRender_everything;
 extern cc_bool NoSetBack_enabled;
 extern cc_bool Scaffold_enabled;
 extern cc_bool ServerInfo_enabled;
-// extern cc_bool AutoReconnect_enabled;
+extern cc_bool AutoReconnect_enabled;
 // extern cc_bool AutoJump_always;
 // extern cc_bool ArrayList_enabled;
 extern float Speed;

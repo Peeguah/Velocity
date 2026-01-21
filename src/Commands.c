@@ -47,6 +47,7 @@ cc_bool NoSetBack_enabled = false;
 cc_bool Scaffold_enabled = false;
 cc_bool AutoReconnect_enabled = false;
 cc_bool ServerInfo_enabled = false;
+cc_bool AntiAFK_enabled = false;
 // cc_bool ArrayList_enabled = false;
 // cc_bool AutoJump_always = true;
 float SpinSpeed = 1;
@@ -1518,7 +1519,7 @@ static struct ChatCommand AutoReconnectCommand = {
 };
 
 /*########################################################################################################################*
-*--------------------------------------------------------ServerInfo----------------------------------------------=--------*
+*--------------------------------------------------------ServerInfo-------------------------------------------------------*
 *#########################################################################################################################*/
 
 static void ServerInfoCommand_Execute(const cc_string* args, int argsCount) {
@@ -1533,6 +1534,36 @@ static struct ChatCommand ServerInfoCommand = {
         "&eDisplays information about the server",
     }
 };
+
+/*########################################################################################################################*
+*--------------------------------------------------------AntiAFK-------------------------------------------------------*
+*#########################################################################################################################*/
+
+static void AntiAFKCommand_Execute(const cc_string* args, int argsCount) {
+	AntiAFK_enabled = !AntiAFK_enabled;
+	Chat_AddRaw(AntiAFK_enabled ? "&aAntiAFK enabled" : "&cAntiAFK disabled");
+}
+
+static struct ChatCommand AntiAFKCommand = {
+	"AntiAFK", AntiAFKCommand_Execute, 0,
+	{
+		"&a/client AntiAFK",
+		"&eAutomatically rotates your view to prevent AFK kick.",
+	}
+};
+
+static void AntiAFK_Tick(struct ScheduledTask* task) {
+    if (!AntiAFK_enabled) return;
+
+        struct LocalPlayer* p = Entities.CurPlayer;
+        struct Entity* e = &p->Base;
+
+        struct LocationUpdate update;
+        update.flags = LU_HAS_YAW | LU_HAS_PITCH;
+        update.yaw   = e->Yaw + 3.0f;
+        update.pitch = Math_ClampAngle(e->Pitch);
+        e->VTABLE->SetLocation(e, &update);
+}
 
 /*########################################################################################################################*
 *------------------------------------------------------Commands component-------------------------------------------------*
@@ -1578,10 +1609,13 @@ static void OnInit(void) {
 	Commands_Register(&VclipCommand);
 	Commands_Register(&HclipCommand);
 	Commands_Register(&ServerInfoCommand);
+	Commands_Register(&AntiAFKCommand);
+	Commands_Register(&AutoReconnectCommand);
 	// Commands_Register(&AutoReconnectCommand);
 	// Commands_Register(&ArrayListCommand);
 	/*Velocity Events*/
 	ScheduledTask_Add(0.01, Spin_Tick);
+	ScheduledTask_Add(60, AntiAFK_Tick);
 }
 
 static void OnFree(void) {

@@ -2201,6 +2201,7 @@ static struct DisconnectScreen {
 	float delayLeft;
 	cc_bool canReconnect, lastActive;
 	int lastSecsLeft;
+	cc_bool doAutoReconnect;
 	struct ButtonWidget reconnect, quit;
 
 	struct FontDesc titleFont, messageFont;
@@ -2226,6 +2227,8 @@ static void DisconnectScreen_UpdateReconnect(struct DisconnectScreen* s) {
 	String_InitArray(msg, msgBuffer);
 	int secsLeft;
 
+	if (s->doAutoReconnect) return;
+
 	secsLeft = Math_Ceil(s->delayLeft);
 
 	if (NoReconnectDelay_enabled) {
@@ -2237,6 +2240,11 @@ static void DisconnectScreen_UpdateReconnect(struct DisconnectScreen* s) {
 		}
 		Widget_SetDisabled(&s->reconnect, secsLeft > 0);
 
+	if (secsLeft == 0 && AutoReconnect_enabled) {
+		s->doAutoReconnect = true;
+		s->dirty = true;
+		return;
+	}
 
 	if (!msg.length) String_AppendConst(&msg, "Reconnect");
 	ButtonWidget_Set(&s->reconnect, &msg, &s->titleFont);
@@ -2290,6 +2298,7 @@ static void DisconnectScreen_Init(void* screen) {
 	s->delayLeft    = DISCONNECT_DELAY_SECS;
 	s->lastSecsLeft = DISCONNECT_DELAY_SECS;
 	s->maxVertices  = Screen_CalcDefaultMaxVertices(s);
+	s->doAutoReconnect = false;
 }
 
 static void DisconnectScreen_Update(void* screen, float delta) {
@@ -2310,6 +2319,13 @@ static void DisconnectScreen_Update(void* screen, float delta) {
 }
 
 static void DisconnectScreen_Render(void* screen, float delta) {
+	struct DisconnectScreen* s = (struct DisconnectScreen*)screen;
+
+	if (s->doAutoReconnect) {
+		DisconnectScreen_OnReconnect(s, &s->reconnect);
+		return;
+	}
+
 	PackedCol top    = PackedCol_Make(64, 32, 32, 255);
 	PackedCol bottom = PackedCol_Make(80, 16, 16, 255);
 	Gfx_Draw2DGradient(0, 0, Window_UI.Width, Window_UI.Height, top, bottom);
