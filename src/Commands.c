@@ -28,7 +28,7 @@
 static struct ChatCommand* cmds_head;
 static struct ChatCommand* cmds_tail;
 
-static cc_bool isSolid = false;
+static cc_bool isSolid = false; //TODO: turn into struct
 cc_bool ForceHax_enabled = false;
 cc_bool NoPush_enabled = false;
 cc_bool NoCamGravity_enabled = false;

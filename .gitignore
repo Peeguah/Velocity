@@ -234,3 +234,4 @@ UpgradeLog*.htm
 misc/.DS_Store
 src/.DS_Store
 third_party/.DS_Store
+.DS_Store
