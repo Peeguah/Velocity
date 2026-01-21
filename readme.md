@@ -70,6 +70,8 @@ Instructions:
 - Vclip
 - Hclip
 - ServerInfo
+- AntiAFK
+- AutoReconnect
 
 ## Current Features
 - Coloured F3 Menu
