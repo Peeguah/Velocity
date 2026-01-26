@@ -32,8 +32,7 @@ static void InitGX(void) {
 	memset(fifo_buffer, 0, FIFO_SIZE);
 
 	GX_Init(fifo_buffer, FIFO_SIZE);
-	Gfx_SetViewport(0, 0, mode->fbWidth, mode->efbHeight);
-	Gfx_SetScissor( 0, 0, mode->fbWidth, mode->efbHeight);
+	Gfx_OnWindowResize();
 	
 	GX_SetDispCopyYScale((f32)mode->xfbHeight / (f32)mode->efbHeight);
 	GX_SetDispCopySrc(0, 0, mode->fbWidth, mode->efbHeight);
@@ -74,14 +73,12 @@ void Gfx_Create(void) {
 
 void Gfx_Free(void) { 
 	Gfx_FreeState();
-	GX_AbortFrame();
-	//GX_Flush(); // TODO needed?
-	VIDEO_Flush();
 }
 cc_bool Gfx_TryRestoreContext(void) { return true; }
 
 static void Gfx_RestoreState(void) { 
 	InitDefaultResources();
+	gfx_format = -1;
 
 	// 4x4 dummy white texture (textures must be at least 1 4x4 tile)
 	struct Bitmap bmp;
@@ -238,7 +235,7 @@ void Gfx_ClearColor(PackedCol color) {
 	gfx_clearColor.g = PackedCol_G(color);
 	gfx_clearColor.b = PackedCol_B(color);
 	
-	GX_SetCopyClear(gfx_clearColor, 0x00ffffff); // TODO: use GX_MAX_Z24 
+	GX_SetCopyClear(gfx_clearColor, GX_MAX_Z24);
 }
 
 static void SetColorWrite(cc_bool r, cc_bool g, cc_bool b, cc_bool a) {
@@ -296,14 +293,12 @@ cc_result Gfx_TakeScreenshot(struct Stream* output) {
 
 	u8* buffer = memalign(32, width * height * 4);
 	if (!buffer) return ERR_OUT_OF_MEMORY;
+	CPU_InvalidateDataCache(buffer, width * height * 4);
 
 	GX_SetTexCopySrc(0, 0, width, height);
 	GX_SetTexCopyDst(width, height, GX_TF_RGBA8, GX_FALSE);
 	GX_CopyTex(buffer, GX_FALSE);
-	GX_PixModeSync();
-	GX_Flush();
-
-	CPU_InvalidateDataCache(buffer, width * height * 4);
+	GX_DrawDone();
 
 	struct Bitmap bmp;
 	bmp.scan0  = tmp;
@@ -342,7 +337,12 @@ void Gfx_EndFrame(void) {
 	if (gfx_vsync) VIDEO_WaitVSync();
 }
 
-void Gfx_OnWindowResize(void) { }
+void Gfx_OnWindowResize(void) {
+	GXRModeObj* mode = cur_mode;
+
+	Gfx_SetViewport(0, 0, mode->fbWidth, mode->efbHeight);
+	Gfx_SetScissor( 0, 0, mode->fbWidth, mode->efbHeight);
+}
 
 void Gfx_SetViewport(int x, int y, int w, int h) {
 	GX_SetViewport(x, y, w, h, 0, 1);

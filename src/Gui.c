@@ -764,6 +764,11 @@ static void OnInit(void) {
 
 static void OnReset(void) {
 	/* TODO:Should we reset all screens here.. ? */
+
+	Gui.HideCrosshair = false;
+	Gui.HideHotbar    = false;
+	Gui.CinematicBarColor = 0;
+	Gui.BarSize = 0.0f;
 }
 
 static void OnFree(void) {
