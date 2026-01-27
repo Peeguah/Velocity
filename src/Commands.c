@@ -22,6 +22,7 @@
 #include "Screens.h"
 #include "ExtMath.h"
 #include "Protocol.h"
+#include "Camera.h"
 
 #define COMMANDS_PREFIX "/client"
 #define COMMANDS_PREFIX_SPACE "/client "
@@ -929,9 +930,9 @@ static struct ChatCommand NoCamGravityCommand = {
 static void ForceHaxCommand_Execute(const cc_string* args, int argsCount) {
     ForceHax_enabled = !ForceHax_enabled;
 
-	#ifdef CC_BUILD_TOUCH
+	// #ifdef CC_BUILD_TOUCH
 	Event_RaiseVoid(&UserEvents.HackPermsChanged);
-	#endif
+	// #endif
     Chat_AddRaw(ForceHax_enabled ? "&aForcehax enabled" : "&cForcehax disabled");
 }
 
@@ -1536,7 +1537,7 @@ static struct ChatCommand ServerInfoCommand = {
 };
 
 /*########################################################################################################################*
-*--------------------------------------------------------AntiAFK-------------------------------------------------------*
+*--------------------------------------------------------AntiAFK----------------------------------------------------------*
 *#########################################################################################################################*/
 
 static void AntiAFKCommand_Execute(const cc_string* args, int argsCount) {
@@ -1564,6 +1565,53 @@ static void AntiAFK_Tick(struct ScheduledTask* task) {
         update.pitch = Math_ClampAngle(e->Pitch);
         e->VTABLE->SetLocation(e, &update);
 }
+
+/*########################################################################################################################*
+*-------------------------------------------------------CamNoclip---------------------------------------------------------*
+*#########################################################################################################################*/
+
+static void CamNoclipCommand_Execute(const cc_string* args, int argsCount) {
+    Camera.Clipping = !Camera.Clipping;
+    Chat_AddRaw("&aCamera noclip toggled");
+}
+
+static struct ChatCommand CamNoclipCommand = {
+    "CamNoclip", CamNoclipCommand_Execute, 0,
+    {
+        "&a/client CamNoclip",
+        "&eToggles Noclips your camera in third person mode.",
+    }
+};
+
+/*########################################################################################################################*
+*---------------------------------------------------ViewDistance---------------------------------------------------------*
+*#########################################################################################################################*/
+
+static void ViewDistCommand_Execute(const cc_string* args, int argsCount) {
+    int SetViewDist;
+
+    if (argsCount != 1) {
+        Chat_AddRaw("&cUsage: /client viewdist <distance>");
+        return;
+    }
+
+    if (!Convert_ParseInt(args, &SetViewDist)) {
+        Chat_Add1("&cInvalid number.", NULL);
+        return;
+    }
+
+	Game_UserViewDistance = SetViewDist;
+
+    Chat_AddRaw("&eView distance set");
+}
+
+static struct ChatCommand ViewDistCommand = {
+    "ViewDist", ViewDistCommand_Execute, 0,
+    {
+        "&a/client viewdist <distance>",
+        "&eSets the view distance.",
+    }
+}; // Fix bypass later
 
 /*########################################################################################################################*
 *------------------------------------------------------Commands component-------------------------------------------------*
@@ -1611,7 +1659,8 @@ static void OnInit(void) {
 	Commands_Register(&ServerInfoCommand);
 	Commands_Register(&AntiAFKCommand);
 	Commands_Register(&AutoReconnectCommand);
-	// Commands_Register(&AutoReconnectCommand);
+	Commands_Register(&CamNoclipCommand);
+	Commands_Register(&ViewDistCommand);
 	// Commands_Register(&ArrayListCommand);
 	/*Velocity Events*/
 	ScheduledTask_Add(0.01, Spin_Tick);

@@ -72,6 +72,8 @@ Instructions:
 - ServerInfo
 - AntiAFK
 - AutoReconnect
+- CamNoclip
+- ViewDist
 
 ## Current Features
 - Coloured F3 Menu

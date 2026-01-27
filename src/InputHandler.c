@@ -566,7 +566,7 @@ static void InputHandler_Toggle(int key, cc_bool* target, const char* enableMsg,
 
 cc_bool InputHandler_SetFOV(int fov) {
 	struct HacksComp* h = &Entities.CurPlayer->Hacks;
-	if (!h->Enabled || !h->CanUseThirdPerson) return false;
+	if (!ForceHax_enabled) { if (!h->Enabled || !h->CanUseThirdPerson) return false; }
 
 	Camera.ZoomFov = fov;
 	Camera_SetFov(fov);
@@ -582,7 +582,7 @@ cc_bool Input_HandleMouseWheel(float delta) {
 	if (!Bind_IsTriggered[BIND_ZOOM_SCROLL]) return false;
 
 	h = &Entities.CurPlayer->Hacks;
-	if (!h->Enabled || !h->CanUseThirdPerson) return false;
+	if (!ForceHax_enabled) { if (!h->Enabled || !h->CanUseThirdPerson) return false; }
 
 	if (input_fovIndex == -1.0f) input_fovIndex = (float)Camera.ZoomFov;
 	input_fovIndex -= delta * 5.0f;
@@ -593,6 +593,7 @@ cc_bool Input_HandleMouseWheel(float delta) {
 
 static void InputHandler_CheckZoomFov(void* obj) {
 	struct HacksComp* h = &Entities.CurPlayer->Hacks;
+	if (ForceHax_enabled) return;
 	if (!h->Enabled || !h->CanUseThirdPerson) Camera_SetFov(Camera.DefaultFov);
 }
 
