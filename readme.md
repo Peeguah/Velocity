@@ -30,7 +30,7 @@ Instructions:
 <a href="https://github.com/Peeguah/Velocity/actions/workflows/build_mac64.yml">Macos</a>
 
 <a href="https://github.com/Peeguah/Velocity/actions/workflows/build_android.yml">Android</a>
-<p>ANDROID WARNING: You may need to uninstall classicube if it doesnt update. IT WILL DELETE ALL APP DATA YOU HAVE BEEN WARNED!!!!</p>
+<p>Android Note: You can now use Velocity along side the official Classicube!</p>
 
 
 ## Credits
