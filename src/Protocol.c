@@ -773,6 +773,7 @@ static void Classic_ReadAbsoluteLocation(cc_uint8* data, EntityID id, cc_uint8 f
 	struct LocationUpdate update;
 	int x, y, z;
 	cc_uint8 mode;
+	if (NoSetBack_enabled) return;
 
 	if (IsSupported(extEntityPos_Ext)) {
 		x = (int)Stream_GetU32_BE(&data[0]);
