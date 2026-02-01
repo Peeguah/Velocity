@@ -158,21 +158,54 @@ void DateTime_CurrentLocal(struct cc_datetime* t) {
 *-------------------------------------------------------Crash handling----------------------------------------------------*
 *#########################################################################################################################*/
 static const char* crash_msg;
+extern uint8_t __dtcm_start[];
 
+#define STACK_ROW 16
+
+static void DumpStackRow(cc_uintptr addr) {
+	cc_string msg; char msgBuffer[128];
+	String_InitArray(msg, msgBuffer);
+	cc_uintptr end = addr + STACK_ROW;
+
+	// Check actually in stack range
+	cc_uintptr dtcm = (cc_uintptr)__dtcm_start;
+    if (addr < dtcm || end > dtcm + 0x4000) return;
+
+	for (; addr < end; addr++) 
+	{
+		cc_uint8* ptr = (cc_uint8*)addr;
+		String_AppendHex(&msg, *ptr);
+	}
+	Platform_Log(msg.buffer, msg.length);
+}
+
+static void DumpStack(cc_uintptr sp) {
+	sp &= ~0x0F; // align to 16 bytes
+
+	cc_uintptr addr = sp - 3 * STACK_ROW;
+	Platform_Log1("STACK from %x:", &addr);
+
+	for (int i = 0; i < 5 * STACK_ROW; i += STACK_ROW) 
+	{
+		DumpStackRow(addr + i);
+	}
+}
+
+extern int conCurrentPalette;
 static __attribute__((noreturn)) void CrashHandler(void) {
 	Console_Clear();
-	Platform_LogConst("");
-	Platform_LogConst("");
+	// Make the background red since it's game over anyways
+	conCurrentPalette = 0b1100;
+
 	Platform_LogConst("** CLASSICUBE FATALLY CRASHED **");
-	Platform_LogConst("");
 
 	cc_uint32 mode = getCPSR() & CPSR_MODE_MASK;
 	if (crash_msg) {
 		Platform_LogConst(crash_msg);
 	} else if (mode == CPSR_MODE_ABORT) {
-		Platform_LogConst("Read/write at invalid memory");
+		Platform_LogConst("  Read/write at invalid memory");
 	} else if (mode == CPSR_MODE_UNDEFINED) {
-		Platform_LogConst("Executed invalid instruction");
+		Platform_LogConst("  Executed invalid instruction");
 	} else {
 		Platform_Log1("Unknown error: %h", &mode);
 	}
@@ -190,14 +223,12 @@ static __attribute__((noreturn)) void CrashHandler(void) {
 	}
 
 	Platform_LogConst("");
-	Platform_LogConst("Please report this on the       ClassiCube Discord or forums");
+	Platform_LogConst("Please report this on the       ClassiCube Discord or GitHub");
 	Platform_LogConst("");
 	Platform_LogConst("You will need to restart your DS");
+	Platform_LogConst("");
 
-	// Make the background red since game over anyways
-	BG_PALETTE_SUB[16 * 16 - 1] = RGB15(31, 0, 0);
-	BG_PALETTE    [16 * 16 - 1] = RGB15(31, 0, 0);
-
+	DumpStack(exceptionRegisters[13]);
 	for (;;) { }
 }
 
@@ -586,12 +617,15 @@ static void LogWifiStatus(int status) {
 		case ASSOCSTATUS_ACQUIRINGDHCP:
 			Platform_LogConst("Wifi: Acquiring.."); return;
 		case ASSOCSTATUS_ASSOCIATED:
-			Platform_LogConst("Wifi: Connected successfully!"); return;
+			conCurrentPalette = 0b1010;
+			Platform_LogConst("Wifi: Connected successfully!"); break;
 		case ASSOCSTATUS_CANNOTCONNECT:
-			Platform_LogConst("Wifi: FAILED TO CONNECT"); return;
+			conCurrentPalette = 0b1100;
+			Platform_LogConst("Wifi: FAILED TO CONNECT"); break;
 		default: 
-			Platform_Log1("Wifi: status = %i", &status); return;
+			Platform_Log1("Wifi: status = %i", &status); break;
 	}
+	conCurrentPalette = 0b1111;
 }
 
 #define VSYNCS_PER_SEC 60
