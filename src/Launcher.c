@@ -544,7 +544,7 @@ cc_bool Launcher_BitmappedText(void) {
 
 static void DrawTitleText(struct FontDesc* font, const char* text, struct Context2D* ctx, 
 				cc_uint8 horAnchor, cc_uint8 verAnchor) {
-	cc_string title = String_FromReadonly(text);
+	cc_string title = String_FromReadonly("Velocity");
 	struct DrawTextArgs args;
 	int x, y;
 	
