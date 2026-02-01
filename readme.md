@@ -74,6 +74,7 @@ Instructions:
 - AutoReconnect
 - CamNoclip
 - ViewDist
+- AutoClicker
 
 ## Current Features
 - Coloured F3 Menu

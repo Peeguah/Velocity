@@ -49,6 +49,7 @@ cc_bool Scaffold_enabled = false;
 cc_bool AutoReconnect_enabled = false;
 cc_bool ServerInfo_enabled = false;
 cc_bool AntiAFK_enabled = false;
+cc_bool AutoClicker_enabled = false;
 // cc_bool ArrayList_enabled = false;
 // cc_bool AutoJump_always = true;
 float SpinSpeed = 1;
@@ -1614,6 +1615,23 @@ static struct ChatCommand ViewDistCommand = {
 }; // Fix bypass later
 
 /*########################################################################################################################*
+*--------------------------------------------------------AutoClicker------------------------------------------------------*
+*#########################################################################################################################*/
+
+static void AutoClickerCommand_Execute(const cc_string* args, int argsCount) {
+	AutoClicker_enabled = !AutoClicker_enabled;
+	Chat_AddRaw(AutoClicker_enabled ? "&aAutoClicker enabled" : "&cAutoClicker disabled");
+}
+
+static struct ChatCommand AutoClickerCommand = {
+	"AutoClicker", AutoClickerCommand_Execute, 0,
+	{
+		"&a/client AutoClicker",
+		"&eAutomatically clicks for you",
+	}
+};
+
+/*########################################################################################################################*
 *------------------------------------------------------Commands component-------------------------------------------------*
 *#########################################################################################################################*/
 static void OnInit(void) {
@@ -1661,6 +1679,7 @@ static void OnInit(void) {
 	Commands_Register(&AutoReconnectCommand);
 	Commands_Register(&CamNoclipCommand);
 	Commands_Register(&ViewDistCommand);
+	Commands_Register(&AutoClickerCommand);
 	// Commands_Register(&ArrayListCommand);
 	/*Velocity Events*/
 	ScheduledTask_Add(0.01, Spin_Tick);
