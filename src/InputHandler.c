@@ -465,12 +465,6 @@ void InputHandler_Tick(float delta) {
 
 	/* Only tick 4 times per second when held down */
 
-	if (AutoClicker_enabled) {
-	input_buttonsDown[MOUSE_LEFT] = true;
-	} else {
-	input_buttonsDown[MOUSE_LEFT] = false;
-	}
-
 	if (input_deltaAcc < 0.2495f && !NoClickDelay_enabled) return;
 	/* NOTE: 0.2495 is used instead of 0.25 to produce delta time */
 	/*  values slightly closer to the old code which measured */
@@ -497,7 +491,7 @@ void InputHandler_Tick(float delta) {
 		if (middle) MouseStateUpdate(MOUSE_MIDDLE, true);
 	}
 
-	if (left) {
+	if (left || AutoClicker_enabled) {
 		InputHandler_DeleteBlock();
 	} else if (right) {
 		InputHandler_PlaceBlock();
