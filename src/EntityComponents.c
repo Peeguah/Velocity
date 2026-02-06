@@ -247,7 +247,7 @@ void HacksComp_Update(struct HacksComp* hacks) {
 		hacks->Speeding = false; hacks->HalfSpeeding = false;
 	}
 
-	hacks->CanDoubleJump = ((hacks->Enabled && hacks->CanDoubleJump) || (hacks->Enabled && ForceHax_enabled));
+	hacks->CanDoubleJump = ((ForceHax_enabled || hacks->CanDoubleJump) && hacks->Enabled);
 	Event_RaiseVoid(&UserEvents.HackPermsChanged);
 }
 
@@ -799,7 +799,7 @@ void PhysicsComp_DoNormalJump(struct PhysicsComp* comp) {
 	if (comp->JumpVel == 0.0f || hacks->MaxJumps <= 0) return;
 
 	entity->Velocity.y = comp->JumpVel;
-	if (hacks->Speeding) entity->Velocity.y += comp->JumpVel; //TODO might need to FIX forcehax logic
+	if (hacks->Speeding) entity->Velocity.y += comp->JumpVel;
 	if (hacks->HalfSpeeding) entity->Velocity.y += comp->JumpVel / 2;
 	comp->CanLiquidJump = false;
 }
@@ -914,7 +914,7 @@ static float PhysicsComp_LowestModifier(struct PhysicsComp* comp, struct AABB* b
 static float PhysicsComp_GetSpeed(struct HacksComp* hacks, float speedMul, cc_bool canSpeed) {
 	float factor = hacks->Floating ? speedMul : 1.0f;
 	float speed  = factor * (1 + HacksComp_CalcSpeedFactor(hacks, canSpeed));
-	return((hacks->CanSpeed && hacks->Enabled) || (ForceHax_enabled && hacks->Enabled)) ? speed : min(speed, hacks->MaxHorSpeed);
+	return((hacks->CanSpeed || ForceHax_enabled) && hacks->Enabled) ? speed : min(speed, hacks->MaxHorSpeed);
 }
 
 static float PhysicsComp_GetBaseSpeed(struct PhysicsComp* comp) {
