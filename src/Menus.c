@@ -518,9 +518,9 @@ static struct Widget* pause_widgets[1 + 6 + 2];
 static void PauseScreen_CheckHacksAllowed(void* screen) {
 	struct PauseScreen* s = (struct PauseScreen*)screen;
 	if (Gui.ClassicMenu) return;
-	Widget_SetDisabled(&s->btns[6],
-			(!Entities.CurPlayer->Hacks.CanAnyHacks && !ForceHax_enabled)); /* env settings */
-	s->dirty = true;
+	// Widget_SetDisabled(&s->btns[6],
+	// 		(!Entities.CurPlayer->Hacks.CanAnyHacks && !ForceHax_enabled)); /* env settings */
+	// s->dirty = true;
 
 }
 
