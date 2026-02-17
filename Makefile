@@ -321,6 +321,8 @@ atari_st:
 	$(MAKE) -f misc/atari_st/Makefile
 ios:
 	$(MAKE) -f misc/ios/Makefile
+android:
+	$(MAKE) -f misc/android/Makefile
 
 # Cleans up all build .o files
 clean:

@@ -1348,6 +1348,10 @@ static void SaveLevelScreen_RemoveOverwrites(struct SaveLevelScreen* s) {
 	}
 }
 
+static void SaveLevelScreen_OnInputTextChanged(void* elem) {
+	SaveLevelScreen_RemoveOverwrites(&SaveLevelScreen);
+}
+
 static cc_result DoSaveMap(const cc_string* path, struct GZipState* state) {
 	static const cc_string schematic = String_FromConst(".schematic");
 	static const cc_string mine      = String_FromConst(".mine");
@@ -1427,6 +1431,7 @@ static void SaveLevelScreen_Save(void* screen, void* widget) {
 		
 	SaveLevelScreen_RemoveOverwrites(s);
 	if ((res = SaveLevelScreen_SaveMap(&path))) return;
+
 	Chat_Add1("&eSaved map to: %s", &path);
 	CPE_SendNotifyAction(NOTIFY_ACTION_LEVEL_SAVED, 0);
 }
@@ -1465,14 +1470,12 @@ static void SaveLevelScreen_File(void* screen, void* b) {
 
 static int SaveLevelScreen_KeyPress(void* screen, char keyChar) {
 	struct SaveLevelScreen* s = (struct SaveLevelScreen*)screen;
-	SaveLevelScreen_RemoveOverwrites(s);
 	InputWidget_Append(&s->input.base, keyChar);
 	return true;
 }
 
 static int SaveLevelScreen_TextChanged(void* screen, const cc_string* str) {
 	struct SaveLevelScreen* s = (struct SaveLevelScreen*)screen;
-	SaveLevelScreen_RemoveOverwrites(s);
 	InputWidget_SetText(&s->input.base, str);
 	return true;
 }
@@ -1482,11 +1485,10 @@ static int SaveLevelScreen_KeyDown(void* screen, int key, struct InputDevice* de
 	int handled;
 	
 	handled = Menu_DoInputDown(s, key, device);
-	/* Pressing Enter triggers save */
+	/* Pressing Enter in general triggers save */
 	if (!handled && InputDevice_IsEnter(key, device))
 		SaveLevelScreen_Save(s, &s->save);
 
-	if (key != CCMOUSE_L) SaveLevelScreen_RemoveOverwrites(s);
 	return Screen_InputDown(s, key, device);
 }
 
@@ -1547,6 +1549,7 @@ static void SaveLevelScreen_Init(void* screen) {
 
 	TextWidget_Add(s, &s->desc);
 	s->input.onscreenPlaceholder = "Map name";
+	s->input.base.OnTextChanged  = SaveLevelScreen_OnInputTextChanged;
 
 	s->maxVertices = Screen_CalcDefaultMaxVertices(s);
 }

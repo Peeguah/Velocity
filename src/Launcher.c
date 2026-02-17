@@ -247,7 +247,7 @@ void Launcher_Setup(void) {
 
 	LWebTasks_Init();
 	Session_Load();
-	Launcher_LoadTheme();
+	LauncherTheme_Load(&Launcher_Theme);
 	Launcher_Init();
 
 	GameVersion_Load();
@@ -346,19 +346,19 @@ CC_NOINLINE static void ParseColor(const char* key, BitmapCol* color) {
 	*color = BitmapColor_RGB(rgb[0], rgb[1], rgb[2]);
 }
 
-void Launcher_LoadTheme(void) {
+void LauncherTheme_Load(struct LauncherTheme* theme) {
 	if (Options_GetBool(OPT_CLASSIC_MODE, false)) {
-		Launcher_Theme = Launcher_ClassicTheme;
+		*theme = Launcher_ClassicTheme;
 		return;
 	}
-	Launcher_Theme = Launcher_ModernTheme;
-	Launcher_Theme.ClassicBackground = Options_GetBool("nostalgia-classicbg", false);
+	*theme = Launcher_ModernTheme;
+	theme->ClassicBackground = Options_GetBool("nostalgia-classicbg", false);
 
-	ParseColor("launcher-back-col",                   &Launcher_Theme.BackgroundColor);
-	ParseColor("launcher-btn-border-col",             &Launcher_Theme.ButtonBorderColor);
-	ParseColor("launcher-btn-fore-active-col",        &Launcher_Theme.ButtonForeActiveColor);
-	ParseColor("launcher-btn-fore-inactive-col",      &Launcher_Theme.ButtonForeColor);
-	ParseColor("launcher-btn-highlight-inactive-col", &Launcher_Theme.ButtonHighlightColor);
+	ParseColor("launcher-back-col",                   &theme->BackgroundColor);
+	ParseColor("launcher-btn-border-col",             &theme->ButtonBorderColor);
+	ParseColor("launcher-btn-fore-active-col",        &theme->ButtonForeActiveColor);
+	ParseColor("launcher-btn-fore-inactive-col",      &theme->ButtonForeColor);
+	ParseColor("launcher-btn-highlight-inactive-col", &theme->ButtonHighlightColor);
 }
 
 CC_NOINLINE static void SaveColor(const char* key, BitmapCol color) {
@@ -371,14 +371,14 @@ CC_NOINLINE static void SaveColor(const char* key, BitmapCol color) {
 	Options_Set(key, &value);
 }
 
-void Launcher_SaveTheme(void) {
+void LauncherTheme_Save(struct LauncherTheme* theme) {
 	Options_PauseSaving();
-		SaveColor("launcher-back-col",                   Launcher_Theme.BackgroundColor);
-		SaveColor("launcher-btn-border-col",             Launcher_Theme.ButtonBorderColor);
-		SaveColor("launcher-btn-fore-active-col",        Launcher_Theme.ButtonForeActiveColor);
-		SaveColor("launcher-btn-fore-inactive-col",      Launcher_Theme.ButtonForeColor);
-		SaveColor("launcher-btn-highlight-inactive-col", Launcher_Theme.ButtonHighlightColor);
-		Options_SetBool("nostalgia-classicbg",           Launcher_Theme.ClassicBackground);
+		SaveColor("launcher-back-col",                   theme->BackgroundColor);
+		SaveColor("launcher-btn-border-col",             theme->ButtonBorderColor);
+		SaveColor("launcher-btn-fore-active-col",        theme->ButtonForeActiveColor);
+		SaveColor("launcher-btn-fore-inactive-col",      theme->ButtonForeColor);
+		SaveColor("launcher-btn-highlight-inactive-col", theme->ButtonHighlightColor);
+		Options_SetBool("nostalgia-classicbg",           theme->ClassicBackground);
 	Options_ResumeSaving();
 }
 

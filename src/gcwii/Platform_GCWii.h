@@ -222,8 +222,6 @@ cc_result Socket_CheckWritable(cc_socket s, cc_bool* writable) {
 	return Socket_Poll(s, SOCKET_POLL_WRITE, writable);
 }
 
-static void InitSockets(void);
-
 
 /*########################################################################################################################*
 *--------------------------------------------------------Platform---------------------------------------------------------*
@@ -263,16 +261,13 @@ static void CreateRootDirectory(void) {
 	Platform_Log1("Created root directory: %i", &err);
 }
 
-void Platform_Init(void) {
+static void InitFilesystem(void) {
 	fat_available = fatInitDefault();
 	Platform_ReadonlyFilesystem = !fat_available;
 
 	FindRootDirectory();
 	CreateRootDirectory();
-	
-	InitSockets();
 }
-void Platform_Free(void) { }
 
 cc_bool Platform_DescribeError(cc_result res, cc_string* dst) {
 	char chars[NATIVE_STR_LEN];

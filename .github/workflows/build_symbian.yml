@@ -19,9 +19,27 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Download Symbian SDK
+
+      - uses: actions/cache/restore@v5
+        name: Check SDK
+        id: cache_sdk
+        with:
+          path: symbiansdk.zip
+          key: symbian-sdk
+
+      - name: Download SDK
+        if: steps.cache_sdk.outputs.cache-hit != 'true'
         run: Invoke-WebRequest https://nnp.nnchan.ru/dl/symbiansr1_gcce_workflow.zip -OutFile symbiansdk.zip
-      - name: Extract Symbian SDK
+
+      - name: Cache SDK
+        if: steps.cache_sdk.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: symbiansdk.zip
+          key: symbian-sdk
+
+
+      - name: Extract SDK
         run: Expand-Archive symbiansdk.zip -DestinationPath .
 
       - name: Compile Symbian build

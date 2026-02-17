@@ -53,7 +53,7 @@ jobs:
           $NDK_ROOT/i686-linux-android21-clang ${{ env.SRCS }} $COMMON_FLAGS $DROID_FLAGS ${{ env.LIBS }} $LATEST_FLAG -o cc-droid-x86_32
           $NDK_ROOT/x86_64-linux-android21-clang ${{ env.SRCS }} $COMMON_FLAGS $DROID_FLAGS ${{ env.LIBS }} $LATEST_FLAG -o cc-droid-x86_64
           
-          cd $ROOT_DIR/android/app/src/main
+          cd $ROOT_DIR/misc/android/app/src/main
           # copy required native libraries
           mkdir lib lib/armeabi lib/armeabi-v7a lib/arm64-v8a lib/x86 lib/x86_64
           cp $ROOT_DIR/cc-droid-arm_16 lib/armeabi/libclassicube.so
@@ -70,10 +70,10 @@ jobs:
           #  https://github.com/skanti/Android-Manual-Build-Command-Line/blob/master/hello-jni/CMakeLists.txt
           
           # compile java files into multiple .class files
-          cd $ROOT_DIR/android/app/src/main/java/com/classicube
-          javac *.java -d $ROOT_DIR/android/app/src/main/obj -classpath $SDK_ROOT/android.jar --release 8
+          cd $ROOT_DIR/misc/android/app/src/main/java/com/classicube
+          javac *.java -d $ROOT_DIR/misc/android/app/src/main/obj -classpath $SDK_ROOT/android.jar --release 8
           
-          cd $ROOT_DIR/android/app/src/main
+          cd $ROOT_DIR/misc/android/app/src/main
           # get debug signing key
           echo -n "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > debug.keystore
           

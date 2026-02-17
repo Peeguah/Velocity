@@ -17,6 +17,7 @@
 #include "Block.h"
 #include "Input.h"
 #include "InputHandler.h"
+#include "Launcher.h"
 
 static void Widget_NullFunc(void* widget) { }
 static int  Widget_Pointer(void* elem, int id, int x, int y) { return false; }
@@ -173,6 +174,23 @@ static void ButtonWidget_Render(void* widget) {
 	Texture_RenderShaded(&w->tex, color);
 }
 
+static PackedCol ButtonWidget_BackColor(struct ButtonWidget* w) {
+	GfxResourceID id = Gui.ClassicTexture ? Gui.GuiClassicTex : Gui.GuiTex;
+	if (id) return w->color;
+
+#ifdef CC_BUILD_WEB /* TODO refactor web handling */
+	return w->color;
+#else
+	/* Avoid white button background */
+	struct LauncherTheme theme;
+	LauncherTheme_Load(&theme);
+
+	return PackedCol_Make(BitmapCol_R(theme.ButtonForeColor), 
+						  BitmapCol_G(theme.ButtonForeColor), 
+						  BitmapCol_B(theme.ButtonForeColor), 255);
+#endif
+}
+
 static void ButtonWidget_BuildMesh(void* widget, struct VertexTextured** vertices) {
 	PackedCol normColor     = PackedCol_Make(224, 224, 224, 255);
 	PackedCol activeColor   = PackedCol_Make(255, 255, 160, 255);
@@ -188,11 +206,12 @@ static void ButtonWidget_BuildMesh(void* widget, struct VertexTextured** vertice
 
 	back.x = w->x; back.width  = w->width;
 	back.y = w->y; back.height = w->height;
+	color  = ButtonWidget_BackColor(w);
 
 	/* TODO: Does this 400 need to take DPI into account */
 	if (w->width >= 400) {
 		/* Button can be drawn normally */
-		Gfx_Make2DQuad(&back, w->color, vertices);
+		Gfx_Make2DQuad(&back, color, vertices);
 		*vertices += 4; /* always use up 8 vertices for body */
 	} else {
 		/* Split button down the middle */
@@ -200,11 +219,11 @@ static void ButtonWidget_BuildMesh(void* widget, struct VertexTextured** vertice
 
 		back.width = (w->width / 2);
 		back.uv.u1 = 0.0f; back.uv.u2 = BUTTON_uWIDTH * scale;
-		Gfx_Make2DQuad(&back, w->color, vertices);
+		Gfx_Make2DQuad(&back, color, vertices);
 
 		back.x += (w->width / 2);
 		back.uv.u1 = BUTTON_uWIDTH * (1.0f - scale); back.uv.u2 = BUTTON_uWIDTH;
-		Gfx_Make2DQuad(&back, w->color, vertices);
+		Gfx_Make2DQuad(&back, color, vertices);
 	}
 
 	color = (w->flags & WIDGET_FLAG_DISABLED) ? disabledColor 

@@ -760,7 +760,7 @@ public class MainActivity extends Activity
 		try {
 			Uri uri;
 			if (android.os.Build.VERSION.SDK_INT >= 23){ // android 6.0
-				uri = CCFileProvider.getUriForFile("screenshots/" + path);
+				uri = CCFileProvider.getUriForFile(this, "screenshots/" + path);
 			} else {
 				// when trying to use content:// URIs on my android 4.0.3 test device
 				//   - 1 app crashed

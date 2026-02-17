@@ -219,7 +219,7 @@
 /* Begin PBXFileReference section */
 		9A4D0C632BDD168800E1695D /* TouchUI.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = TouchUI.c; sourceTree = "<group>"; };
 		9A57ECED2BCD1408006A89F0 /* Audio_OpenAL.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Audio_OpenAL.c; sourceTree = "<group>"; };
-		9A62ADF4286D906F00E5E3DE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ClassiCube/Assets.xcassets; sourceTree = "<group>"; };
+		9A62ADF4286D906F00E5E3DE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = Assets.xcassets; sourceTree = "<group>"; };
 		9A6C79642BFDDEF100676D27 /* FancyLighting.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = FancyLighting.c; sourceTree = "<group>"; };
 		9A6C79662BFDDF0600676D27 /* Queue.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Queue.c; sourceTree = "<group>"; };
 		9A6C7DFB2C41E93700676D27 /* InputHandler.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = InputHandler.c; sourceTree = "<group>"; };

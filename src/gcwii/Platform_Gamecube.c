@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <network.h>
+#include <ogc/aram.h>
 #include <ogc/cache.h>
 #include <ogc/lwp.h>
 #include <ogc/mutex.h>
@@ -274,6 +275,24 @@ void Waitable_WaitFor(void* handle, cc_uint32 milliseconds) {
 	res = LWP_SemTimedWait(*ptr, &ts);
 	if (res && res != ETIMEDOUT) Process_Abort2(res, "Event timed wait");
 }
+
+
+/*########################################################################################################################*
+*--------------------------------------------------------Platform---------------------------------------------------------*
+*#########################################################################################################################*/
+void Platform_Init(void) {
+	AR_FormatDisk(true);
+
+	InitFilesystem();
+
+	if (String_IndexOfConst(&root_path, "ram:/") == 0) {
+		VirtualDialog_Show("Data persistence warning", 
+							"Using non-persistent ARAM as the temporary filesystem\n"
+							"Note that any saved settings or maps will be lost after exiting", false);
+	}
+	InitSockets();
+}
+void Platform_Free(void) { }
 
 
 /*########################################################################################################################*

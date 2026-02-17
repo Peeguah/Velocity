@@ -92,11 +92,12 @@ public class CCFileProvider extends ContentProvider
         return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
     }
 
-    public static Uri getUriForFile(String path) {
-        // See AndroidManifest.xml for authority
+    public static Uri getUriForFile(Context ctx, String path) {
+        // See AndroidManifest.xml (assumes authority there is [package].provider)
+        String pack = ctx.getPackageName();
         return new Uri.Builder()
                 .scheme("content")
-                .authority("com.classicube.android.client.provider")
+                .authority(pack + ".provider")
                 .encodedPath(Uri.encode(path, "/"))
                 .build();
     }
