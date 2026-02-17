@@ -37,6 +37,7 @@
 #include "Lighting.h"
 #include "InputHandler.h"
 #include "Protocol.h"
+#include "Commands.h"
 
 /*########################################################################################################################*
 *--------------------------------------------------------Menu base--------------------------------------------------------*
@@ -517,7 +518,9 @@ static struct Widget* pause_widgets[1 + 6 + 2];
 static void PauseScreen_CheckHacksAllowed(void* screen) {
 	struct PauseScreen* s = (struct PauseScreen*)screen;
 	if (Gui.ClassicMenu) return;
-	// TODO find something that works
+	Widget_SetDisabled(&s->btns[6],
+			(!Entities.CurPlayer->Hacks.CanAnyHacks && !ForceHax_enabled)); /* env settings */
+	s->dirty = true;
 
 }
 
@@ -685,7 +688,9 @@ static const struct SimpleButtonDesc optsGroup_btns[8] = {
 
 static void OptionsGroupScreen_CheckHacksAllowed(void* screen) {
 	struct OptionsGroupScreen* s = (struct OptionsGroupScreen*)screen;
-// TODO find something that works
+	Widget_SetDisabled(&s->btns[6],
+			(!Entities.CurPlayer->Hacks.CanAnyHacks && !ForceHax_enabled)); /* env settings */
+	s->dirty = true;
 }
 
 CC_NOINLINE static void OptionsGroupScreen_UpdateDesc(struct OptionsGroupScreen* s) {
