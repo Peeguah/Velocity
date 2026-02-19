@@ -473,7 +473,7 @@ void Classic_SendChat(const cc_string* text, cc_bool partial) {
 static cc_uint8* Classic_WritePosition(cc_uint8* data, Vec3 pos, float yaw, float pitch) {
 	BlockID payload;
 	int x, y, z;
-	if (Blink_enabled) return data; /* don't send position update if blink is enabled */
+	if (Blink_enabled || Freecam_enabled) return data; /* don't send position update if blink is enabled */
 
 	*data++ = OPCODE_ENTITY_TELEPORT;
 	{

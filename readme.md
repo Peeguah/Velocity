@@ -76,6 +76,7 @@ Instructions:
 - ViewDist
 - AutoClicker
 - Blink
+- Freecam
 
 ## Current Features
 - Coloured F3 Menu

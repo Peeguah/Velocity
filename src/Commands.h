@@ -29,6 +29,7 @@ extern cc_bool ServerInfo_enabled;
 extern cc_bool AutoReconnect_enabled;
 extern cc_bool AutoClicker_enabled;
 extern cc_bool Blink_enabled;
+extern cc_bool Freecam_enabled;
 // extern cc_bool AutoJump_always;
 // extern cc_bool ArrayList_enabled;
 extern float Speed;

@@ -51,11 +51,13 @@ cc_bool ServerInfo_enabled = false;
 cc_bool AntiAFK_enabled = false;
 cc_bool AutoClicker_enabled = false;
 cc_bool Blink_enabled = false;
+cc_bool Freecam_enabled = false;
 // cc_bool ArrayList_enabled = false;
 // cc_bool AutoJump_always = true;
 float SpinSpeed = 1;
 float Speed = 0.0f;
 float StepHeight = 0.0f;
+float Freecam_savedX, Freecam_savedY, Freecam_savedZ;
 
 void Commands_Register(struct ChatCommand* cmd) {
 	LinkedList_Append(cmd, cmds_head, cmds_tail);
@@ -1637,6 +1639,10 @@ static struct ChatCommand AutoClickerCommand = {
 *#########################################################################################################################*/
 
 static void BlinkCommand_Execute(const cc_string* args, int argsCount) {
+	if (Freecam_enabled) {
+		Chat_AddRaw("&cCannot toggle Blink while Freecam is enabled.");
+		return;
+	}
 	Blink_enabled = !Blink_enabled;
 	Chat_AddRaw(Blink_enabled ? "&aBlink enabled" : "&cBlink disabled");
 }
@@ -1646,6 +1652,48 @@ static struct ChatCommand BlinkCommand = {
 	{
 		"&a/client Blink",
 		"&eToggles Blink mode",
+	}
+};
+
+/*#########################################################################################################################*
+*---------------------------------------------------------Freecam---------------------------------------------------------*
+*#########################################################################################################################*/
+
+static void FreecamCommand_Execute(const cc_string* args, int argsCount) {
+    struct LocalPlayer* p = Entities.CurPlayer;
+    struct Entity* e = &p->Base;
+	if (Blink_enabled) {
+		Chat_AddRaw("&cCannot toggle Freecam while Blink is enabled.");
+		return;
+	}
+    Freecam_enabled = !Freecam_enabled;
+	Chat_AddRaw(Freecam_enabled ? "&aFreecam enabled" : "&cFreecam disabled");
+
+    if (Freecam_enabled) {
+        Freecam_savedX = e->Position.x;
+        Freecam_savedY = e->Position.y;
+        Freecam_savedZ = e->Position.z;
+
+    } else {
+        struct LocationUpdate update;
+        Vec3 v;
+
+        v.x = Freecam_savedX;
+        v.y = Freecam_savedY;
+        v.z = Freecam_savedZ;
+
+        update.flags = LU_HAS_POS;
+        update.pos   = v;
+
+        e->VTABLE->SetLocation(e, &update);
+    }
+}
+
+static struct ChatCommand FreecamCommand = {
+	"Freecam", FreecamCommand_Execute, 0,
+	{
+		"&a/client Freecam",
+		"&eAllows the player to move feely",
 	}
 };
 
@@ -1699,6 +1747,7 @@ static void OnInit(void) {
 	Commands_Register(&ViewDistCommand);
 	Commands_Register(&AutoClickerCommand);
 	Commands_Register(&BlinkCommand);
+	Commands_Register(&FreecamCommand);
 	// Commands_Register(&ArrayListCommand);
 	/*Velocity Events*/
 	ScheduledTask_Add(0.01, Spin_Tick);
