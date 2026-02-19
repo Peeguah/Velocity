@@ -75,6 +75,7 @@ Instructions:
 - CamNoclip
 - ViewDist
 - AutoClicker
+- Blink
 
 ## Current Features
 - Coloured F3 Menu

@@ -50,6 +50,7 @@ cc_bool AutoReconnect_enabled = false;
 cc_bool ServerInfo_enabled = false;
 cc_bool AntiAFK_enabled = false;
 cc_bool AutoClicker_enabled = false;
+cc_bool Blink_enabled = false;
 // cc_bool ArrayList_enabled = false;
 // cc_bool AutoJump_always = true;
 float SpinSpeed = 1;
@@ -1632,6 +1633,23 @@ static struct ChatCommand AutoClickerCommand = {
 };
 
 /*########################################################################################################################*
+*----------------------------------------------------------Blink----------------------------------------------------------*
+*#########################################################################################################################*/
+
+static void BlinkCommand_Execute(const cc_string* args, int argsCount) {
+	Blink_enabled = !Blink_enabled;
+	Chat_AddRaw(Blink_enabled ? "&aBlink enabled" : "&cBlink disabled");
+}
+
+static struct ChatCommand BlinkCommand = {
+	"Blink", BlinkCommand_Execute, 0,
+	{
+		"&a/client Blink",
+		"&eToggles Blink mode",
+	}
+};
+
+/*########################################################################################################################*
 *------------------------------------------------------Commands component-------------------------------------------------*
 *#########################################################################################################################*/
 static void OnInit(void) {
@@ -1680,6 +1698,7 @@ static void OnInit(void) {
 	Commands_Register(&CamNoclipCommand);
 	Commands_Register(&ViewDistCommand);
 	Commands_Register(&AutoClickerCommand);
+	Commands_Register(&BlinkCommand);
 	// Commands_Register(&ArrayListCommand);
 	/*Velocity Events*/
 	ScheduledTask_Add(0.01, Spin_Tick);
@@ -1703,11 +1722,8 @@ struct IGameComponent Commands_Component = {
 // Roadmap: try to get every variable into "Velocity.Variable"
 // Arraylist
 // Make step height higher
-//Shorten forcehax logic as im dumb
 //Noslow
 //ForceViewDist
-
-//Make noreconnectdelay a command
 
 
 
