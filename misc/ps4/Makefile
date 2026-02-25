@@ -31,7 +31,7 @@ DEPFILES := $(OBJS:%.o=%.d)
 #---------------------------------------------------------------------------------
 # Code generation
 #--------------------------------------------------------------------------------
-LIBS        := -lc -lkernel -lc++ -lSceVideoOut -lSceNet
+LIBS        := -lc -lkernel -lc++ -lSceVideoOut -lSceNet -lScePad -lSceUserService -lSceRtc
 
 CFLAGS      := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables -c $(EXTRAFLAGS) -isysroot $(TOOLCHAIN) -isystem $(TOOLCHAIN)/include -isystem $(TOOLCHAIN)/include/orbis -DPLAT_PS4
 CXXFLAGS    := $(CFLAGS) -isystem $(TOOLCHAIN)/include/c++/v1
@@ -50,7 +50,7 @@ CDIR    := linux
 #---------------------------------------------------------------------------------
 # Main targets
 #---------------------------------------------------------------------------------
-all: $(BUILD_DIR) $(CONTENT_ID).pkg
+all: $(BUILD_DIR) $(TARGET).pkg
 
 clean:
 	rm -f $(CONTENT_ID).pkg pkg.gp4 pkg/sce_sys/param.sfo eboot.bin \
@@ -63,8 +63,11 @@ $(BUILD_DIR):
 #---------------------------------------------------------------------------------
 # Executable generation
 #---------------------------------------------------------------------------------
-$(CONTENT_ID).pkg: $(BUILD_DIR)/pkg.gp4
-	$(TOOLCHAIN)/bin/$(CDIR)/PkgTool.Core pkg_build $< .
+$(TARGET).pkg: $(BUILD_DIR)/$(CONTENT_ID).pkg
+	mv $(BUILD_DIR)/$(CONTENT_ID).pkg $(TARGET).pkg
+
+$(BUILD_DIR)/$(CONTENT_ID).pkg: $(BUILD_DIR)/pkg.gp4
+	$(TOOLCHAIN)/bin/$(CDIR)/PkgTool.Core pkg_build $< $(BUILD_DIR)
 
 $(BUILD_DIR)/pkg.gp4: $(BUILD_DIR)/eboot.bin $(BUILD_DIR)/sce_sys/param.sfo $(BUILD_DIR)/sce_sys/icon0.png $(BUILD_DIR)/sce_sys/about/right.sprx
 	cd $(BUILD_DIR)

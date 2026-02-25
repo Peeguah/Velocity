@@ -165,6 +165,8 @@ cc_bool DynamicLib_LoadAll(const cc_string* path, const struct DynamicLibSym* sy
 /* Attempts to install a callback for the operating system's unhandled error event/signal. */
 /* This is used to attempt to log some information about a crash due to invalid memory read, etc. */
 void CrashHandler_Install(void);
+void CrashHandler_DumpRegisters(void* ctx, cc_string* str);
+
 /* Displays a message box with raw_msg body, logs state to disc, then immediately terminates/quits. */
 /* Typically called when an unrecoverable error occurs. (e.g. out of memory) */
 #define Process_Abort(msg) Process_Abort2(0, msg);
