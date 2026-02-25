@@ -52,6 +52,7 @@ cc_bool AntiAFK_enabled = false;
 cc_bool AutoClicker_enabled = false;
 cc_bool Blink_enabled = false;
 cc_bool Freecam_enabled = false;
+cc_bool CamNoClip_enabled = false;
 // cc_bool ArrayList_enabled = false;
 // cc_bool AutoJump_always = true;
 float SpinSpeed = 1;
@@ -1575,8 +1576,8 @@ static void AntiAFK_Tick(struct ScheduledTask* task) {
 *#########################################################################################################################*/
 
 static void CamNoclipCommand_Execute(const cc_string* args, int argsCount) {
-    Camera.Clipping = !Camera.Clipping;
-    Chat_AddRaw("&aCamera noclip toggled");
+	CamNoClip_enabled = !CamNoClip_enabled;
+	Chat_AddRaw(Camera.Clipping ? "&aCamera Noclip enabled" : "&cCamera Noclip disabled");
 }
 
 static struct ChatCommand CamNoclipCommand = {

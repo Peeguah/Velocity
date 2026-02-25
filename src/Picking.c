@@ -9,6 +9,7 @@
 #include "Logger.h"
 #include "Camera.h"
 #include "Platform.h"
+#include "Commands.h"
 
 static float pickedPos_dist;
 static void TestAxis(struct RayTracer* t, float dAxis, Face fAxis) {
@@ -226,6 +227,7 @@ static cc_bool ClipCamera(struct RayTracer* t) {
 	Vec3 intersect;
 	float t0, t1;
 
+	if (CamNoClip_enabled) return false;
 	if (Blocks.Draw[t->block] == DRAW_GAS || Blocks.Collide[t->block] != COLLIDE_SOLID) return false;
 	if (!Intersection_RayIntersectsBox(t->origin, t->invDir, t->Min, t->Max, &t0, &t1)) return false;
 
