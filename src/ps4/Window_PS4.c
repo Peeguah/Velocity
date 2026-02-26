@@ -146,7 +146,27 @@ void Window_DisableRawMouse(void) { Input.RawMode = false; }
 
 /*########################################################################################################################*
 *-------------------------------------------------------Gamepads----------------------------------------------------------*
-*#########################################################################################################################*/\
+*#########################################################################################################################*/
+static const BindMapping defaults_ps4[BIND_COUNT] = {
+	[BIND_FORWARD]      = { CCPAD_UP    },  
+	[BIND_BACK]         = { CCPAD_DOWN  },
+	[BIND_LEFT]         = { CCPAD_LEFT  },  
+	[BIND_RIGHT]        = { CCPAD_RIGHT },
+	[BIND_JUMP]         = { CCPAD_1     },
+	[BIND_SET_SPAWN]    = { CCPAD_START }, 
+	[BIND_CHAT]         = { CCPAD_4     },
+	[BIND_INVENTORY]    = { CCPAD_3     },
+	[BIND_SEND_CHAT]    = { CCPAD_START },
+	[BIND_PLACE_BLOCK]  = { CCPAD_L     },
+	[BIND_DELETE_BLOCK] = { CCPAD_R     },
+	[BIND_SPEED]        = { CCPAD_2, CCPAD_L },
+	[BIND_FLY]          = { CCPAD_2, CCPAD_R },
+	[BIND_NOCLIP]       = { CCPAD_2, CCPAD_3 },
+	[BIND_FLY_UP]       = { CCPAD_2, CCPAD_UP },
+	[BIND_FLY_DOWN]     = { CCPAD_2, CCPAD_DOWN },
+	[BIND_HOTBAR_LEFT]  = { CCPAD_ZL    }, 
+	[BIND_HOTBAR_RIGHT] = { CCPAD_ZR    }
+};
 static int pad_handle;
 
 void Gamepads_PreInit(void) {
@@ -167,10 +187,49 @@ void Gamepads_Init(void) {
     if (pad_handle < 0) Process_Abort2(pad_handle, "pad open");
 }
 
+static void HandleButtons(int port, int btns) {
+	Gamepad_SetButton(port, CCPAD_1, btns & ORBIS_PAD_BUTTON_CIRCLE);
+	Gamepad_SetButton(port, CCPAD_2, btns & ORBIS_PAD_BUTTON_CROSS);
+	Gamepad_SetButton(port, CCPAD_3, btns & ORBIS_PAD_BUTTON_SQUARE);
+	Gamepad_SetButton(port, CCPAD_4, btns & ORBIS_PAD_BUTTON_TRIANGLE);
+      
+	Gamepad_SetButton(port, CCPAD_START,  btns & ORBIS_PAD_BUTTON_OPTIONS);
+	//Gamepad_SetButton(port, CCPAD_SELECT, data->BTN_SELECT);
+	Gamepad_SetButton(port, CCPAD_LSTICK, btns & ORBIS_PAD_BUTTON_L3);
+	Gamepad_SetButton(port, CCPAD_RSTICK, btns & ORBIS_PAD_BUTTON_R3);
+
+	Gamepad_SetButton(port, CCPAD_LEFT,   btns & ORBIS_PAD_BUTTON_LEFT);
+	Gamepad_SetButton(port, CCPAD_RIGHT,  btns & ORBIS_PAD_BUTTON_RIGHT);
+	Gamepad_SetButton(port, CCPAD_UP,     btns & ORBIS_PAD_BUTTON_UP);
+	Gamepad_SetButton(port, CCPAD_DOWN,   btns & ORBIS_PAD_BUTTON_DOWN);
+	
+	Gamepad_SetButton(port, CCPAD_L,  btns & ORBIS_PAD_BUTTON_L1);
+	Gamepad_SetButton(port, CCPAD_R,  btns & ORBIS_PAD_BUTTON_R1);
+	Gamepad_SetButton(port, CCPAD_ZL, btns & ORBIS_PAD_BUTTON_L2);
+	Gamepad_SetButton(port, CCPAD_ZR, btns & ORBIS_PAD_BUTTON_R2);
+}
+
+#define AXIS_SCALE 16.0f
+static void HandleJoystick(int port, int axis, int x, int y, float delta) {
+	if (Math_AbsI(x) <= 32) x = 0;
+	if (Math_AbsI(y) <= 32) y = 0;	
+	
+	Gamepad_SetAxis(port, axis, x / AXIS_SCALE, y / AXIS_SCALE, delta);
+}
+
+static void ProcessPad(int port, float delta, OrbisPadData* pad) {
+	HandleButtons(port, pad->buttons);
+	HandleJoystick(port, PAD_AXIS_LEFT,  pad->leftStick.x  - 0x80, pad->leftStick.y  - 0x80, delta);
+	HandleJoystick(port, PAD_AXIS_RIGHT, pad->rightStick.x - 0x80, pad->rightStick.y - 0x80, delta);
+}
+
 void Gamepads_Process(float delta) {
 	OrbisPadData data;
 	int res = scePadRead(pad_handle, &data, 1);
 	if (res < 0) Process_Abort2(res, "polling pad");
+
+	int port = Gamepad_Connect(0x504, defaults_ps4);
+	ProcessPad(port, delta, &data);
 }
 
 
