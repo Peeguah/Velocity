@@ -1025,6 +1025,10 @@ if (vel.x != 0.0f || vel.z != 0.0f ) {
     entity->Velocity.z = 0.0f;
 }
 }
+if (Airwalk_enabled) {
+	entity->Velocity.y = 0.0f;
+
+}
 	Scaffold_Tick(NULL);
 }
 

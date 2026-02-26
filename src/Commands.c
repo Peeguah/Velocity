@@ -53,6 +53,7 @@ cc_bool AutoClicker_enabled = false;
 cc_bool Blink_enabled = false;
 cc_bool Freecam_enabled = false;
 cc_bool CamNoClip_enabled = false;
+cc_bool Airwalk_enabled = false;
 // cc_bool ArrayList_enabled = false;
 // cc_bool AutoJump_always = true;
 float SpinSpeed = 1;
@@ -1699,6 +1700,23 @@ static struct ChatCommand FreecamCommand = {
 };
 
 /*########################################################################################################################*
+*--------------------------------------------------------Airwalk------------=---------------------------------------------*
+*#########################################################################################################################*/
+
+static void AirwalkCommand_Execute(const cc_string* args, int argsCount) {
+	Airwalk_enabled = !Airwalk_enabled;
+	Chat_AddRaw(Airwalk_enabled ? "&aAirwalk enabled" : "&cAirwalk disabled");
+}
+
+static struct ChatCommand AirwalkCommand = {
+	"Airwalk", AirwalkCommand_Execute, 0,
+	{
+		"&a/client Airwalk",
+		"&eAllows you to walk on air",
+	}
+};
+
+/*########################################################################################################################*
 *------------------------------------------------------Commands component-------------------------------------------------*
 *#########################################################################################################################*/
 static void OnInit(void) {
@@ -1749,6 +1767,7 @@ static void OnInit(void) {
 	Commands_Register(&AutoClickerCommand);
 	Commands_Register(&BlinkCommand);
 	Commands_Register(&FreecamCommand);
+	Commands_Register(&AirwalkCommand);
 	// Commands_Register(&ArrayListCommand);
 	/*Velocity Events*/
 	ScheduledTask_Add(0.01, Spin_Tick);
@@ -1767,14 +1786,14 @@ struct IGameComponent Commands_Component = {
 
 
 //todo: step p->colision.stepheight Fix menu hacks settings not working in
-// NoJumpDelay, Slippy (friction), add a toggle message for on and off Fix Full block steping hacks logic.
+// NoJumpDelay, Slippy (friction), Fix Full block steping hacks logic.
 
 // Roadmap: try to get every variable into "Velocity.Variable"
 // Arraylist
 // Make step height higher
 //Noslow
 //ForceViewDist
-
+//Fix airwalk to make it ground walking
 
 
 
