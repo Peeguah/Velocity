@@ -77,6 +77,7 @@ Instructions:
 - AutoClicker
 - Blink
 - Freecam
+- Airwalk
 
 ## Current Features
 - Coloured F3 Menu
