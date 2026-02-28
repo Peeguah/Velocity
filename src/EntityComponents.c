@@ -802,7 +802,7 @@ void PhysicsComp_UpdateVelocityState(struct PhysicsComp* comp) {
 void PhysicsComp_DoNormalJump(struct PhysicsComp* comp) {
 	struct Entity* entity   = comp->Entity;
 	struct HacksComp* hacks = comp->Hacks;
-	if (comp->JumpVel == 0.0f || hacks->MaxJumps <= 0) return;
+	if (comp->JumpVel == 0.0f || (!InfJump_enabled && !ForceHax_enabled && hacks->MaxJumps <= 0)) return;
 
 	entity->Velocity.y = comp->JumpVel;
 	if (hacks->Speeding) entity->Velocity.y += comp->JumpVel;
