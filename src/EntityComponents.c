@@ -1025,9 +1025,12 @@ if (vel.x != 0.0f || vel.z != 0.0f ) {
     entity->Velocity.z = 0.0f;
 }
 }
+float yVel;
 if (Airwalk_enabled) {
     entity->OnGround = true;
     entity->Velocity.y = 0.0f;
+	yVel = Math_SqrtF(entity->Velocity.x * entity->Velocity.x + entity->Velocity.z * entity->Velocity.z);
+	if (hacks->FlyingDown) entity->Velocity.y -= yVel;
     if (!Strafe_enabled) Vec3_Mul3By(&entity->Velocity, &comp->groundFriction);
 }
 	Scaffold_Tick(NULL);
