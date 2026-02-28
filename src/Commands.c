@@ -54,6 +54,7 @@ cc_bool Blink_enabled = false;
 cc_bool Freecam_enabled = false;
 cc_bool CamNoClip_enabled = false;
 cc_bool Airwalk_enabled = false;
+cc_bool NoSlow_enabled = false;
 // cc_bool ArrayList_enabled = false;
 // cc_bool AutoJump_always = true;
 float SpinSpeed = 1;
@@ -1700,7 +1701,7 @@ static struct ChatCommand FreecamCommand = {
 };
 
 /*########################################################################################################################*
-*--------------------------------------------------------Airwalk------------=---------------------------------------------*
+*--------------------------------------------------------Airwalk----------------------------------------------------------*
 *#########################################################################################################################*/
 
 static void AirwalkCommand_Execute(const cc_string* args, int argsCount) {
@@ -1713,6 +1714,23 @@ static struct ChatCommand AirwalkCommand = {
 	{
 		"&a/client Airwalk",
 		"&eAllows you to walk on air",
+	}
+};
+
+/*########################################################################################################################*
+*---------------------------------------------------------NoSlow----------------------------------------------------------*
+*#########################################################################################################################*/
+
+static void NoSlowCommand_Execute(const cc_string* args, int argsCount) {
+	NoSlow_enabled = !NoSlow_enabled;
+	Chat_AddRaw(NoSlow_enabled ? "&aNoSlow enabled" : "&cNoSlow disabled");
+}
+
+static struct ChatCommand NoSlowCommand = {
+	"NoSlow", NoSlowCommand_Execute, 0,
+	{
+		"&a/client NoSlow",
+		"&eRemoves slowness effects from blocks",
 	}
 };
 
@@ -1768,6 +1786,7 @@ static void OnInit(void) {
 	Commands_Register(&BlinkCommand);
 	Commands_Register(&FreecamCommand);
 	Commands_Register(&AirwalkCommand);
+	Commands_Register(&NoSlowCommand);
 	// Commands_Register(&ArrayListCommand);
 	/*Velocity Events*/
 	ScheduledTask_Add(0.01, Spin_Tick);
@@ -1793,8 +1812,6 @@ struct IGameComponent Commands_Component = {
 // Make step height higher
 //Noslow
 //ForceViewDist
-//Fix airwalk to make it ground walking
-
 
 
 

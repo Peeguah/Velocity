@@ -44,40 +44,46 @@ Instructions:
 
 **These require /client**
 
-- ForceHax
-- Reach
+**Render**
+- Nametags
+- NoCamGravity
+- NoPitchLimit
+- NoRender
+- CamNoclip
+- Freecam
+
+**Movement**
 - Tp (Position | Player)
 - NoPush
 - Jesus
 - Gravity
 - Speed
 - Infjump
-- Nametags
 - Fastclimb (ropes only)
 - Step
-- NoclickDelay
-- NoCamGravity
-- Highjump
 - Strafe
-- Spin
-- NoReconnectDelay (on by default)
+- Highjump
 - Autojump
-- NoPitchLimit
-- NoRender
-- Brand
 - NoSetBack
-- Scaffold
 - Vclip
 - Hclip
+- Blink
+- Airwalk
+- NoSlow
+
+**Other**
+- ForceHax
+- Reach
+- NoclickDelay
+- Spin
+- NoReconnectDelay (on by default)
+- Brand
+- Scaffold
 - ServerInfo
 - AntiAFK
 - AutoReconnect
-- CamNoclip
 - ViewDist
 - AutoClicker
-- Blink
-- Freecam
-- Airwalk
 
 ## Current Features
 - Coloured F3 Menu

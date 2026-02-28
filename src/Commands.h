@@ -32,6 +32,7 @@ extern cc_bool Blink_enabled;
 extern cc_bool Freecam_enabled;
 extern cc_bool CamNoClip_enabled;
 extern cc_bool Airwalk_enabled;
+extern cc_bool NoSlow_enabled;
 // extern cc_bool AutoJump_always;
 // extern cc_bool ArrayList_enabled;
 extern float Speed;

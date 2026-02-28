@@ -742,7 +742,7 @@ void PhysicsComp_UpdateVelocityState(struct PhysicsComp* comp) {
 		if (hacks->Speeding) entity->Velocity.y += 0.12f * dir;
 		if (hacks->HalfSpeeding) entity->Velocity.y += 0.06f * dir;
 	} else if (comp->Jumping && Entity_TouchesAnyRope(entity) && entity->Velocity.y > 0.02f && !FastClimb_enabled) {
-		entity->Velocity.y = 0.02f;
+		entity->Velocity.y = 0.04f;
 	}
 
 	if (!comp->Jumping && !AutoJump_enabled) { comp->CanLiquidJump = false; return; }
@@ -752,6 +752,12 @@ void PhysicsComp_UpdateVelocityState(struct PhysicsComp* comp) {
 
 	touchWater = Entity_TouchesAnyWater(entity);
 	touchLava  = Entity_TouchesAnyLava(entity);
+
+	if ((touchLava || touchWater) && comp->Jumping && NoSlow_enabled) {
+		entity->Velocity.y += 0.04f;
+		if (hacks->Speeding) entity->Velocity.y += 0.04f;
+		if (hacks->HalfSpeeding) entity->Velocity.y += 0.02f;
+	 }
 
 	if (touchWater || touchLava) {
 		Entity_GetBounds(entity, &bounds);
@@ -978,7 +984,7 @@ void PhysicsComp_PhysicsTick(struct PhysicsComp* comp, Vec3 vel) {
 	if (Entity_TouchesAnyWater(entity) && !hacks->Floating) {
 		Vec3 waterDrag = { 0.8f, 0.8f, 0.8f };
 		PhysicsComp_MoveNormal(comp, vel, 0.02f * horSpeed, waterDrag, LIQUID_GRAVITY, verSpeed);
-	} else if (Entity_TouchesAnyLava(entity) && !hacks->Floating) {
+	} else if (Entity_TouchesAnyLava(entity) && !hacks->Floating ) {
 		Vec3 lavaDrag = { 0.5f, 0.5f, 0.5f };
 		PhysicsComp_MoveNormal(comp, vel, 0.02f * horSpeed, lavaDrag, LIQUID_GRAVITY, verSpeed);
 	} else if (Entity_TouchesAnyRope(entity) && !hacks->Floating) {
