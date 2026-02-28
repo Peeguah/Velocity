@@ -665,7 +665,7 @@ static void TeleportCommand_Execute(const cc_string* args, int argsCount) {
     } else if (argsCount != 3) {
 		Chat_AddRaw("&e/client teleport: &cYou didn't specify X, Y and Z coordinates.");
 		return;
-	} else {
+	} else if (argsCount == 0) {
         Chat_AddRaw("&e/client tp: &cUsage /client tp <player>  or  /client tp <x> <y> <z>");
         return;
     }
