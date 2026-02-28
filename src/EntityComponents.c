@@ -1026,8 +1026,9 @@ if (vel.x != 0.0f || vel.z != 0.0f ) {
 }
 }
 if (Airwalk_enabled) {
-	entity->Velocity.y = 0.0f;
-
+    entity->OnGround = true;
+    entity->Velocity.y = 0.0f;
+    Vec3_Mul3By(&entity->Velocity, &comp->groundFriction);
 }
 	Scaffold_Tick(NULL);
 }
