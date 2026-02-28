@@ -1106,6 +1106,7 @@ static void CPE_CustomBlockLevel(cc_uint8* data) {
 static void CPE_HoldThis(cc_uint8* data) {
 	BlockID block;
 	cc_bool canChange;
+	if (DontHoldThis_enabled) return;
 
 	ReadBlock(data, block);
 	canChange = *data == 0;

@@ -84,6 +84,7 @@ Instructions:
 - AutoReconnect
 - ViewDist
 - AutoClicker
+- DontHoldThis
 
 ## Current Features
 - Coloured F3 Menu

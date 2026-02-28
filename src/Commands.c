@@ -55,6 +55,7 @@ cc_bool Freecam_enabled = false;
 cc_bool CamNoClip_enabled = false;
 cc_bool Airwalk_enabled = false;
 cc_bool NoSlow_enabled = false;
+cc_bool DontHoldThis_enabled = false;
 // cc_bool ArrayList_enabled = false;
 // cc_bool AutoJump_always = true;
 float SpinSpeed = 1;
@@ -1119,7 +1120,8 @@ static struct ChatCommand InfJumpCommand = {
 // 		"&a/client ArrayList",
 // 		"&eToggles ArrayList.",
 // 	}
-// }; TODO : Finish ArrayList implementation
+// }; 
+//TODO : Finish ArrayList implementation
 
 /*########################################################################################################################*
 *------------------------------------------------------FastClimb----------------------------------------------------------*
@@ -1735,6 +1737,23 @@ static struct ChatCommand NoSlowCommand = {
 };
 
 /*########################################################################################################################*
+*---------------------------------------------------DontHoldThis----------------------------------------------------------*
+*#########################################################################################################################*/
+
+static void DontHoldThisCommand_Execute(const cc_string* args, int argsCount) {
+	DontHoldThis_enabled = !DontHoldThis_enabled;
+	Chat_AddRaw(DontHoldThis_enabled ? "&aDontHoldThis enabled" : "&cDontHoldThis disabled");
+}
+
+static struct ChatCommand DontHoldThisCommand = {
+	"DontHoldThis", DontHoldThisCommand_Execute, 0,
+	{
+		"&a/client DontHoldThis",
+		"&eRemoves slowness effects from blocks",
+	}
+};
+
+/*########################################################################################################################*
 *------------------------------------------------------Commands component-------------------------------------------------*
 *#########################################################################################################################*/
 static void OnInit(void) {
@@ -1787,6 +1806,7 @@ static void OnInit(void) {
 	Commands_Register(&FreecamCommand);
 	Commands_Register(&AirwalkCommand);
 	Commands_Register(&NoSlowCommand);
+	Commands_Register(&DontHoldThisCommand);
 	// Commands_Register(&ArrayListCommand);
 	/*Velocity Events*/
 	ScheduledTask_Add(0.01, Spin_Tick);
