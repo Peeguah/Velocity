@@ -56,6 +56,7 @@ cc_bool CamNoClip_enabled = false;
 cc_bool Airwalk_enabled = false;
 cc_bool NoSlow_enabled = false;
 cc_bool DontHoldThis_enabled = false;
+cc_bool Parkour_enabled = false;
 // cc_bool ArrayList_enabled = false;
 // cc_bool AutoJump_always = true;
 float SpinSpeed = 1;
@@ -1754,6 +1755,23 @@ static struct ChatCommand DontHoldThisCommand = {
 };
 
 /*########################################################################################################################*
+*---------------------------------------------------Parkour---------------------------------------------------------------*
+*#########################################################################################################################*/
+
+static void ParkourCommand_Execute(const cc_string* args, int argsCount) {
+	Parkour_enabled = !Parkour_enabled;
+	Chat_AddRaw(Parkour_enabled ? "&aParkour enabled" : "&cParkour disabled");
+}
+
+static struct ChatCommand ParkourCommand = {
+	"Parkour", ParkourCommand_Execute, 0,
+	{
+		"&a/client Parkour",
+		"&eEnables advanced parkour mechanics",
+	}
+};
+
+/*########################################################################################################################*
 *------------------------------------------------------Commands component-------------------------------------------------*
 *#########################################################################################################################*/
 static void OnInit(void) {
@@ -1807,6 +1825,7 @@ static void OnInit(void) {
 	Commands_Register(&AirwalkCommand);
 	Commands_Register(&NoSlowCommand);
 	Commands_Register(&DontHoldThisCommand);
+	Commands_Register(&ParkourCommand);
 	// Commands_Register(&ArrayListCommand);
 	/*Velocity Events*/
 	ScheduledTask_Add(0.01, Spin_Tick);
@@ -1832,6 +1851,6 @@ struct IGameComponent Commands_Component = {
 // Make step height higher
 //Noslow
 //ForceViewDist
-
+//Fix Parkour logic.
 
 

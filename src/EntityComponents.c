@@ -745,7 +745,11 @@ void PhysicsComp_UpdateVelocityState(struct PhysicsComp* comp) {
 		entity->Velocity.y = 0.04f;
 	}
 
-	if (!comp->Jumping && !AutoJump_enabled) { comp->CanLiquidJump = false; return; }
+	static cc_bool WOG;
+	static cc_bool CanJump;
+	if (entity->OnGround) { CanJump = true;	WOG = false; } else { WOG = true; }
+
+	if (!comp->Jumping && !AutoJump_enabled && !(Parkour_enabled && CanJump)) { comp->CanLiquidJump = false; return; }
 	// if (!AutoJump_always) {
     // 	if (entity->Velocity.x != 0.0f && entity->Velocity.z != 0.0f) return;
 	// }
@@ -794,8 +798,9 @@ void PhysicsComp_UpdateVelocityState(struct PhysicsComp* comp) {
 	} else if (Entity_TouchesAnyRope(entity)) {
 		entity->Velocity.y += (hacks->Speeding) ? 0.15f : 0.10f;
 		comp->CanLiquidJump = false;
-	} else if (entity->OnGround) {
+	} else if ((entity->OnGround && (comp->Jumping || AutoJump_enabled)) || (CanJump && WOG && Parkour_enabled)) {
 		PhysicsComp_DoNormalJump(comp);
+		CanJump = false;
 	}
 }
 
