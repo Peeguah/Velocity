@@ -1018,18 +1018,26 @@ void PhysicsComp_PhysicsTick(struct PhysicsComp* comp, Vec3 vel) {
 	if (entity->OnGround) comp->MultiJumps = 0;
 
 if (Strafe_enabled) {
-if (vel.x != 0.0f || vel.z != 0.0f ) {
-    float len = Math_SqrtF(vel.x * vel.x + vel.z * vel.z);
-    vel.x /= len;
-    vel.z /= len;
 
-    float strafeSpeed = horSpeed * 0.225f;
-    entity->Velocity.x = vel.x * strafeSpeed;
-    entity->Velocity.z = vel.z * strafeSpeed;
-} else {
-    entity->Velocity.x = 0.0f;
-    entity->Velocity.z = 0.0f;
-}
+    if (vel.x != 0.0f || vel.z != 0.0f) {
+
+        float len = Math_SqrtF(vel.x * vel.x + vel.z * vel.z);
+        vel.x /= len;
+        vel.z /= len;
+
+        float factor = 0.02f;
+        float accel  = factor * horSpeed;
+
+        float maxSpeedX = accel / (1.0f - comp->drag.x);
+        float maxSpeedZ = accel / (1.0f - comp->drag.z);
+
+        entity->Velocity.x = vel.x * maxSpeedX;
+        entity->Velocity.z = vel.z * maxSpeedZ;
+
+    } else {
+        entity->Velocity.x = 0.0f;
+        entity->Velocity.z = 0.0f;
+    }
 }
 float yVel;
 if (Airwalk_enabled) {
