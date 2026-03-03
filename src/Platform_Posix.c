@@ -1048,7 +1048,7 @@ static cc_result Process_RawGetExePath(char* path, int* len) {
 	*len = String_CalcLen(path, NATIVE_STR_LEN);
 	return 0;
 }
-#elif defined CC_BUILD_LINUX || defined CC_BUILD_SERENITY
+#elif defined CC_BUILD_LINUX || defined CC_BUILD_SERENITY || defined CC_BUILD_GNU
 static cc_result Process_RawGetExePath(char* path, int* len) {
 	*len = readlink("/proc/self/exe", path, NATIVE_STR_LEN);
 	return *len == -1 ? errno : 0;
