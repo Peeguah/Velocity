@@ -70,6 +70,7 @@ Instructions:
 - Blink
 - Airwalk
 - NoSlow
+- Parkour
 
 **Other**
 - ForceHax
