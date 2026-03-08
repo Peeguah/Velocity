@@ -227,3 +227,5 @@ UpgradeLog*.htm
 # Eclipse
 .cproject
 .project
+
+cef/

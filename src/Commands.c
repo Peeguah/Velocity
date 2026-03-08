@@ -1406,9 +1406,14 @@ static void BrandCommand_Execute(const cc_string* args, int argsCount) {
 	}
 
 	String_InitArray(BrandName, BrandNameBuffer);
-	String_AppendString(&BrandName, &args[0]);
-	Server.AppName = BrandName;
-	CPE_SendExtInfo(64);
+	
+    for (int i = 0; i < argsCount; i++) {
+        if (i > 0) String_AppendConst(&BrandName, " ");
+        String_AppendString(&BrandName, &args[i]);
+    }
+
+    Server.AppName = BrandName;
+    CPE_SendExtInfo(64);
 
 	Chat_AddRaw("&aClient brand updated.");
 }
