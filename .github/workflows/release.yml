@@ -16,6 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Install GitHub CLI
+      - name: Install GitHub CLI
+        run: sudo apt update && sudo apt install -y gh zip tar
+
       # Download resources
       - name: Retrieve classicube texture pack
         run: wget https://www.classicube.net/static/default.zip
@@ -35,7 +39,7 @@ jobs:
           wget https://cdn.classicube.net/client/latest/ClassiCube.32 -O cc-linux-32
 
       # Download macOS 64-bit binary
-      - name: Retrieve macOS binaries
+      - name: Retrieve macOS binary
         run: wget https://cdn.classicube.net/client/latest/ClassiCube.64.osx -O cc-mac-64
 
       # Generate builds
@@ -74,16 +78,17 @@ jobs:
 
       # Create GitHub release
       - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        with:
-          tag_name: ${{ github.event.inputs.release_tag }}
-          release_name: Release ${{ github.event.inputs.release_tag }}
-          draft: false
-          prerelease: false
+        run: |
+          gh release create "${{ github.event.inputs.release_tag }}" \
+            --title "Release ${{ github.event.inputs.release_tag }}" \
+            --notes "Automated release build" \
+            --draft=false \
+            --prerelease=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Upload selected artifacts to the release
-      - name: Upload all assets
+      # Upload artifacts
+      - name: Upload release assets
         run: |
           ASSETS=(
             cc-linux32.tar.gz
