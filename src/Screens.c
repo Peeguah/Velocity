@@ -1632,7 +1632,6 @@ static void SpecialTextScreen_Update(void* screen, float delta) {
 	/* Destroy announcement texture before even rendering it at all, */
 	/* otherwise changing texture pack shows announcement for one frame */
 	if (s->announcement.tex.ID && (Chat_AnnouncementLeft -= delta) <= 0) {
-		Platform_LogConst("DES ANN");
 		Elem_Free(&s->announcement);
 		s->dirty = true;
 	}
