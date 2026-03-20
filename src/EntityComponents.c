@@ -950,9 +950,13 @@ void Scaffold_Tick(void* obj) { // OLD CODE
 	struct HacksComp* hacks = &LocalPlayer_Instances[0].Hacks;
     Vec3 pos = p->Position;
     int x = Math_Floor(pos.x);
-    int y = Math_Floor(pos.y) - (hacks->FlyingDown ? 2 : 1);
+	int y = Math_Floor(pos.y) - (hacks->FlyingDown ? 2 : 1);
+    if (Scaffold_Sustain) {
+		if (SustainY > y) return;
+		y = SustainY;
+	}
     int z = Math_Floor(pos.z);
-
+	
     if (!World_Contains(x, y, z)) return;
     if (World_GetBlock(x, y, z) != BLOCK_AIR) return;
 

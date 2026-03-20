@@ -35,8 +35,10 @@ extern cc_bool Airwalk_enabled;
 extern cc_bool NoSlow_enabled;
 extern cc_bool DontHoldThis_enabled;
 extern cc_bool Parkour_enabled;
+extern cc_bool Scaffold_Sustain;
 // extern cc_bool AutoJump_always;
 // extern cc_bool ArrayList_enabled;
+extern int SustainY;
 extern float Speed;
 extern float StepHeight;
 

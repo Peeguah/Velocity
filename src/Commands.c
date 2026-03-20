@@ -57,11 +57,13 @@ cc_bool Airwalk_enabled = false;
 cc_bool NoSlow_enabled = false;
 cc_bool DontHoldThis_enabled = false;
 cc_bool Parkour_enabled = false;
+cc_bool Scaffold_Sustain = false;
 // cc_bool ArrayList_enabled = false;
 // cc_bool AutoJump_always = true;
 float SpinSpeed = 1;
 float Speed = 0.0f;
 float StepHeight = 0.0f;
+int SustainY = 0;
 float Freecam_savedX, Freecam_savedY, Freecam_savedZ;
 
 void Commands_Register(struct ChatCommand* cmd) {
@@ -1380,14 +1382,25 @@ static struct ChatCommand NoRenderCommand = {
 *#########################################################################################################################*/
 
 static void ScaffoldCommand_Execute(const cc_string* args, int argsCount) {
-    Scaffold_enabled = !Scaffold_enabled;
-    Chat_AddRaw(Scaffold_enabled ? "&aScaffold enabled" : "&cScaffold disabled");
+	struct Entity* p = &Entities.CurPlayer->Base;
+
+	if (argsCount == 1) {
+    	if (String_CaselessEqualsConst(args, "SustainY")) {
+		    Scaffold_Sustain = !Scaffold_Sustain;
+        	Chat_AddRaw(Scaffold_Sustain ? "&aSustainY enabled" : "&cSustainY disabled");
+    	}
+	} else if (!argsCount) {
+		Scaffold_enabled = !Scaffold_enabled;
+    	Chat_AddRaw(Scaffold_enabled ? "&aScaffold enabled" : "&cScaffold disabled");
+	}
+
+	SustainY = Math_Floor(p->Position.y) - 1;
 }
 
 static struct ChatCommand ScaffoldCommand = {
     "Scaffold", ScaffoldCommand_Execute, 0,
     {
-        "&a/client Scaffold.",
+        "&a/client Scaffold (SustainY)",
         "&eAuto places blocks underneath you.",
     }
 };
