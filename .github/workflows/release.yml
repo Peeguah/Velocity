@@ -94,7 +94,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          docker run --rm -v "$PWD:/work" ghcr.io/saschpe/android-ndk:34-jdk17.0.8_7-ndk25.2.9519653-cmake3.22.1 bash -lc '
+          docker run --rm -e GITHUB_SHA -v "$PWD:/work" ghcr.io/saschpe/android-ndk:34-jdk17.0.8_7-ndk25.2.9519653-cmake3.22.1 bash -lc '
             set -euo pipefail
             cd /work
 
