@@ -950,7 +950,7 @@ void Scaffold_Tick(void* obj) { // OLD CODE
 	struct HacksComp* hacks = &LocalPlayer_Instances[0].Hacks;
     Vec3 pos = p->Position;
     int x = Math_Floor(pos.x);
-	int y = Math_Floor(pos.y) - (hacks->FlyingDown ? 2 : 1);
+	int y = Math_Floor(pos.y) - (hacks->FlyingDown && !Scaffold_enabled ? 2 : 1);
     if (Scaffold_Sustain) {
 		if (SustainY > y) return;
 		y = SustainY;
