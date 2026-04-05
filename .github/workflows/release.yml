@@ -89,20 +89,6 @@ jobs:
             -DCC_NOMAIN src/CCicon_64.res \
             -o cc-w64.exe -lwinmm -limagehlp
 
-      - name: Build Windows ARM
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          docker run --rm -v "$PWD:/work" dockcross/windows-arm64 bash -lc '
-            set -euo pipefail
-            cd /work
-            gcc src/*.c third_party/bearssl/*.c \
-              -O1 -s -mwindows -nostartfiles -Wl,-emain_real \
-              -DCC_NOMAIN \
-              -o cc-warm64.exe -lwinmm -limagehlp
-          '
-
       - name: Build Android
         shell: bash
         run: |
@@ -115,9 +101,7 @@ jobs:
             mkdir -p build-tools
             wget https://github.com/ClassiCube/rpi-compiling-stuff/raw/main/build-tools.zip
             unzip build-tools.zip -d build-tools
-            chmod +x build-tools/aapt
-            chmod +x build-tools/dx
-            chmod +x build-tools/zipalign
+            chmod +x build-tools/aapt build-tools/dx build-tools/zipalign
 
             LATEST_FLAG=-DCC_COMMIT_SHA=\"${GITHUB_SHA::9}\"
             DROID_FLAGS="-fPIC -shared -s -O1 -fvisibility=hidden -rdynamic -funwind-tables"
@@ -130,15 +114,14 @@ jobs:
             TOOLS_ROOT=$ROOT_DIR/build-tools
             SDK_ROOT="/opt/android-sdk-linux/platforms/android-34"
 
-            $NDK_ROOT/armv7a-linux-androideabi19-clang $SRCS $COMMON_FLAGS $DROID_FLAGS -march=armv5 -rtlib=libgcc -L $ROOT_DIR/build-tools/runtime $LIBS $LATEST_FLAG -o cc-droid-arm_16
-            $NDK_ROOT/armv7a-linux-androideabi19-clang $SRCS $COMMON_FLAGS $DROID_FLAGS -mfpu=vfp3-d16 $LIBS $LATEST_FLAG -o cc-droid-arm_32
-            $NDK_ROOT/aarch64-linux-android21-clang $SRCS $COMMON_FLAGS $DROID_FLAGS $LIBS $LATEST_FLAG -o cc-droid-arm_64
-            $NDK_ROOT/i686-linux-android21-clang $SRCS $COMMON_FLAGS $DROID_FLAGS $LIBS $LATEST_FLAG -o cc-droid-x86_32
-            $NDK_ROOT/x86_64-linux-android21-clang $SRCS $COMMON_FLAGS $DROID_FLAGS $LIBS $LATEST_FLAG -o cc-droid-x86_64
+            $NDK_ROOT/armv7a-linux-androideabi19-clang $SRCS $COMMON_FLAGS $DROID_FLAGS -o cc-droid-arm_32 $LIBS $LATEST_FLAG
+            $NDK_ROOT/aarch64-linux-android21-clang $SRCS $COMMON_FLAGS $DROID_FLAGS -o cc-droid-arm_64 $LIBS $LATEST_FLAG
+            $NDK_ROOT/i686-linux-android21-clang $SRCS $COMMON_FLAGS $DROID_FLAGS -o cc-droid-x86_32 $LIBS $LATEST_FLAG
+            $NDK_ROOT/x86_64-linux-android21-clang $SRCS $COMMON_FLAGS $DROID_FLAGS -o cc-droid-x86_64 $LIBS $LATEST_FLAG
 
             cd $ROOT_DIR/misc/android/app/src/main
-            mkdir -p lib lib/armeabi lib/armeabi-v7a lib/arm64-v8a lib/x86 lib/x86_64
-            cp $ROOT_DIR/cc-droid-arm_16 lib/armeabi/libclassicube.so
+            mkdir -p lib lib/armeabi-v7a lib/arm64-v8a lib/x86 lib/x86_64
+
             cp $ROOT_DIR/cc-droid-arm_32 lib/armeabi-v7a/libclassicube.so
             cp $ROOT_DIR/cc-droid-arm_64 lib/arm64-v8a/libclassicube.so
             cp $ROOT_DIR/cc-droid-x86_32 lib/x86/libclassicube.so
@@ -151,7 +134,7 @@ jobs:
             echo -n "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > debug.keystore
             $TOOLS_ROOT/dx --dex --output=classes.dex ./obj
             $TOOLS_ROOT/aapt package -f -M AndroidManifest.xml -S res -F cc-unsigned.apk -I $SDK_ROOT/android.jar
-            $TOOLS_ROOT/aapt add -f cc-unsigned.apk classes.dex lib/armeabi/libclassicube.so lib/armeabi-v7a/libclassicube.so lib/arm64-v8a/libclassicube.so lib/x86/libclassicube.so lib/x86_64/libclassicube.so
+            $TOOLS_ROOT/aapt add -f cc-unsigned.apk classes.dex lib/armeabi-v7a/libclassicube.so lib/arm64-v8a/libclassicube.so lib/x86/libclassicube.so lib/x86_64/libclassicube.so
             $TOOLS_ROOT/zipalign -f 4 cc-unsigned.apk cc-signed.apk
             $TOOLS_ROOT/apksigner sign --ks debug.keystore --ks-pass pass:android cc-signed.apk
             cp cc-signed.apk $ROOT_DIR/cc.apk
@@ -162,8 +145,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          mkdir -p dist/linux32-gl1 dist/linux32-gl2 dist/linux64-gl1 dist/linux64-gl2
-
           make_unix_tar() {
             local src_bin="$1"
             local out_tar="$2"
@@ -172,10 +153,6 @@ jobs:
             mkdir -p ClassiCube
             cp "$src_bin" ClassiCube/ClassiCube
             chmod +x ClassiCube/ClassiCube
-            if [ -f misc/linux/install-desktop-entry.sh ]; then
-              cp misc/linux/install-desktop-entry.sh ClassiCube/install-desktop-entry.sh
-              chmod +x ClassiCube/install-desktop-entry.sh
-            fi
             tar -zcvf "$out_tar" ClassiCube
             rm -rf ClassiCube
           }
@@ -210,19 +187,7 @@ jobs:
             cc-linux32.tar.gz \
             cc-linux64.tar.gz \
             cc-win64.zip \
-            cc-warm64.exe \
             cc.apk \
             --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: ./.github/actions/notify_success
-        with:
-          DESTINATION_URL: '${{ secrets.NOTIFY_URL }}'
-          WORKFLOW_NAME: 'release'
-
-      - uses: ./.github/actions/notify_failure
-        if: failure()
-        with:
-          NOTIFY_MESSAGE: 'Failed to produce release'
-          WEBHOOK_URL: '${{ secrets.WEBHOOK_URL }}'
