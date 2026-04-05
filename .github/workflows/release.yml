@@ -97,7 +97,7 @@ jobs:
           docker run --rm -v "$PWD:/work" dockcross/windows-arm64 bash -lc '
             set -euo pipefail
             cd /work
-            aarch64-w64-mingw32-gcc src/*.c third_party/bearssl/*.c \
+            gcc src/*.c third_party/bearssl/*.c \
               -O1 -s -mwindows -nostartfiles -Wl,-emain_real \
               -DCC_NOMAIN \
               -o cc-warm64.exe -lwinmm -limagehlp
