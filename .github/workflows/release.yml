@@ -36,12 +36,15 @@ jobs:
         run: |
           wget https://www.classicube.net/static/default.zip
           wget https://www.classicube.net/static/audio.zip
-
       # =========================
       # LINUX BUILD
       # =========================
       - name: Build Linux
         run: |
+          # =====================
+          # 64-bit build
+          # =====================
+          rm -rf lib
           wget https://github.com/ClassiCube/rpi-compiling-stuff/raw/main/linux64.zip
           unzip linux64.zip
 
@@ -51,6 +54,13 @@ jobs:
             -no-pie -fno-pie -m64 -L ./lib \
             -Wl,--unresolved-symbols=ignore-in-shared-libs \
             -o cc-linux-64 -lX11 -lXi -lpthread -lGL -lm -ldl
+
+          # =====================
+          # 32-bit build
+          # =====================
+          rm -rf lib
+          wget https://github.com/ClassiCube/rpi-compiling-stuff/raw/main/linux32.zip
+          unzip linux32.zip
 
           gcc src/*.c third_party/bearssl/*.c -O1 -s \
             -fno-stack-protector -fno-math-errno -Qn -Werror \
