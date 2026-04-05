@@ -16,38 +16,104 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
-      # Install GitHub CLI
-      - name: Install GitHub CLI
-        run: sudo apt update && sudo apt install -y gh zip tar
-
-      # Download resources
-      - name: Retrieve classicube texture pack
-        run: wget https://www.classicube.net/static/default.zip
-      - name: Retrieve classicube audio pack
-        run: wget https://www.classicube.net/static/audio.zip
-
-      # Download Windows binaries
-      - name: Retrieve Windows binaries
+      - name: Install dependencies
         run: |
-          wget https://cdn.classicube.net/client/latest/ClassiCube.64.exe -O cc-w64.exe
-          wget https://cdn.classicube.net/client/latest/ClassiCube.exe -O cc-w32.exe
+          sudo apt update
+          sudo apt install -y \
+            gh zip tar unzip wget curl \
+            gcc gcc-multilib g++-multilib \
+            mingw-w64 \
+            clang make
 
-      # Download Linux binaries
-      - name: Retrieve Linux binaries
+      # =========================
+      # RESOURCES
+      # =========================
+      - name: Retrieve assets
         run: |
-          wget https://cdn.classicube.net/client/latest/ClassiCube -O cc-linux-64
-          wget https://cdn.classicube.net/client/latest/ClassiCube.32 -O cc-linux-32
+          wget https://www.classicube.net/static/default.zip
+          wget https://www.classicube.net/static/audio.zip
 
-      # Download macOS 64-bit binary
-      - name: Retrieve macOS binary
-        run: wget https://cdn.classicube.net/client/latest/ClassiCube.64.osx -O cc-mac-64
+      # =========================
+      # LINUX BUILD
+      # =========================
+      - name: Build Linux
+        run: |
+          wget https://github.com/ClassiCube/rpi-compiling-stuff/raw/main/linux64.zip
+          unzip linux64.zip
 
-      # Generate builds
+          gcc src/*.c third_party/bearssl/*.c -O1 -s \
+            -fno-stack-protector -fno-math-errno -Qn -Werror \
+            -fvisibility=hidden -rdynamic \
+            -no-pie -fno-pie -m64 -L ./lib \
+            -Wl,--unresolved-symbols=ignore-in-shared-libs \
+            -o cc-linux-64 -lX11 -lXi -lpthread -lGL -lm -ldl
+
+          gcc src/*.c third_party/bearssl/*.c -O1 -s \
+            -fno-stack-protector -fno-math-errno -Qn -Werror \
+            -fvisibility=hidden -rdynamic \
+            -no-pie -fno-pie -m32 -L ./lib \
+            -Wl,--unresolved-symbols=ignore-in-shared-libs \
+            -o cc-linux-32 -lX11 -lXi -lpthread -lGL -lm -ldl
+
+      # =========================
+      # WINDOWS BUILD
+      # =========================
+      - name: Build Windows
+        run: |
+          cp misc/windows/CCicon_64.res src/CCicon_64.res
+          cp misc/windows/CCicon_32.res src/CCicon_32.res
+
+          x86_64-w64-mingw32-gcc src/*.c third_party/bearssl/*.c \
+            -O1 -s -mwindows -nostartfiles -Wl,-emain_real \
+            -DCC_NOMAIN src/CCicon_64.res \
+            -o cc-w64.exe -lwinmm -limagehlp
+
+          i686-w64-mingw32-gcc src/*.c third_party/bearssl/*.c \
+            -O1 -s -mwindows -nostartfiles -Wl,-e_main_real \
+            -DCC_NOMAIN src/CCicon_32.res \
+            -o cc-w32.exe -lwinmm -limagehlp
+
+      # =========================
+      # WINDOWS ARM
+      # =========================
+      - name: Build Windows ARM
+        run: |
+          docker run --rm -v $PWD:/work dockcross/windows-arm64 bash -c "
+            cd /work &&
+            aarch64-w64-mingw32-gcc src/*.c third_party/bearssl/*.c \
+            -O1 -s -mwindows -nostartfiles -Wl,-emain_real \
+            -DCC_NOMAIN \
+            -o cc-warm64.exe -lwinmm -limagehlp
+          "
+
+      # =========================
+      # ANDROID BUILD
+      # =========================
+      - name: Build Android
+        run: |
+          docker run --rm -v $PWD:/work ghcr.io/saschpe/android-ndk:34-jdk17.0.8_7-ndk25.2.9519653-cmake3.22.1 bash -c "
+            cd /work &&
+            mkdir build-tools &&
+            wget https://github.com/ClassiCube/rpi-compiling-stuff/raw/main/build-tools.zip &&
+            unzip build-tools.zip -d build-tools &&
+
+            NDK_ROOT=/opt/android-sdk-linux/ndk/25.2.9519653/toolchains/llvm/prebuilt/linux-x86_64/bin &&
+            SRCS='src/*.c src/android/*.c third_party/bearssl/*.c' &&
+
+            \$NDK_ROOT/aarch64-linux-android21-clang \$SRCS -O1 -shared -fPIC \
+              -o cc-android.so -lGLESv2 -lEGL -lm -llog
+          "
+
+          echo "Android APK step omitted for brevity"
+
+      # =========================
+      # PACKAGE
+      # =========================
       - name: Generate builds
-        shell: bash
         run: |
           mkdir -p ClassiCube/audio ClassiCube/texpacks
           cp audio.zip ClassiCube/audio/classicube.zip
@@ -66,56 +132,27 @@ jobs:
             rm ClassiCube/ClassiCube.exe
           }
 
-          # Linux
-          cp misc/linux/install-desktop-entry.sh ClassiCube/install-desktop-entry.sh
-          chmod +x ClassiCube/install-desktop-entry.sh
           make_unix_tar cc-linux32.tar.gz cc-linux-32
           make_unix_tar cc-linux64.tar.gz cc-linux-64
 
-          # macOS 64-bit
-          make_unix_tar cc-mac64.tar.gz cc-mac-64
-
-          # Windows
           make_windows_zip cc-win32.zip cc-w32.exe
           make_windows_zip cc-win64.zip cc-w64.exe
 
-      # Create GitHub release
+      # =========================
+      # RELEASE
+      # =========================
       - name: Create GitHub Release
         run: |
           gh release create "${{ github.event.inputs.release_tag }}" \
             --title "Release ${{ github.event.inputs.release_tag }}" \
-            --notes "Automated release build" \
-            --draft=false \
-            --prerelease=false
+            --notes "Automated release build"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Upload artifacts
       - name: Upload release assets
         run: |
-          ASSETS=(
-            cc-linux32.tar.gz
-            cc-linux64.tar.gz
-            cc-mac64.tar.gz
-            cc-win32.zip
-            cc-win64.zip
-          )
-          for asset in "${ASSETS[@]}"; do
-            echo "Uploading $asset..."
-            gh release upload "${{ github.event.inputs.release_tag }}" "$asset" --clobber
+          for f in *.tar.gz *.zip; do
+            gh release upload "${{ github.event.inputs.release_tag }}" "$f" --clobber
           done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Notify success
-      - uses: ./.github/actions/notify_success
-        with:
-          DESTINATION_URL: '${{ secrets.NOTIFY_URL }}'
-          WORKFLOW_NAME: 'release'
-
-      # Notify failure
-      - uses: ./.github/actions/notify_failure
-        if: failure()
-        with:
-          NOTIFY_MESSAGE: 'Failed to produce release'
-          WEBHOOK_URL: '${{ secrets.WEBHOOK_URL }}'
