@@ -29,140 +29,200 @@ jobs:
             mingw-w64 \
             clang make
 
-      # =========================
-      # RESOURCES
-      # =========================
-      - name: Retrieve assets
-        run: |
-          wget https://www.classicube.net/static/default.zip
-          wget https://www.classicube.net/static/audio.zip
-      # =========================
-      # LINUX BUILD
-      # =========================
       - name: Build Linux
+        shell: bash
         run: |
-          # =====================
-          # 64-bit build
-          # =====================
+          set -euo pipefail
+
+          LATEST_FLAG=-DCC_COMMIT_SHA=\"${GITHUB_SHA::9}\"
+
+          rm -rf lib linux32.zip linux64.zip
+
+          wget https://github.com/ClassiCube/rpi-compiling-stuff/raw/main/linux32.zip
+          unzip linux32.zip
+
+          gcc src/*.c third_party/bearssl/*.c \
+            -O1 -s -fno-stack-protector -fno-math-errno -Qn -Werror \
+            -fvisibility=hidden -rdynamic -Werror \
+            -no-pie -fno-pie -m32 -fcf-protection=none \
+            -L ./lib -Wl,--unresolved-symbols=ignore-in-shared-libs \
+            $LATEST_FLAG \
+            -o cc-linux-32-gl1 -lX11 -lXi -lpthread -lGL -lm -ldl
+
+          gcc src/*.c third_party/bearssl/*.c \
+            -O1 -s -fno-stack-protector -fno-math-errno -Qn -Werror \
+            -fvisibility=hidden -rdynamic -Werror \
+            -no-pie -fno-pie -m32 -fcf-protection=none \
+            -L ./lib -Wl,--unresolved-symbols=ignore-in-shared-libs \
+            $LATEST_FLAG -DCC_GFX_BACKEND=CC_GFX_BACKEND_GL2 \
+            -o cc-linux-32-gl2 -lX11 -lXi -lpthread -lGL -lm -ldl
+
           rm -rf lib
           wget https://github.com/ClassiCube/rpi-compiling-stuff/raw/main/linux64.zip
           unzip linux64.zip
 
-          gcc src/*.c third_party/bearssl/*.c -O1 -s \
-            -fno-stack-protector -fno-math-errno -Qn -Werror \
-            -fvisibility=hidden -rdynamic \
-            -no-pie -fno-pie -m64 -L ./lib \
-            -Wl,--unresolved-symbols=ignore-in-shared-libs \
-            -o cc-linux-64 -lX11 -lXi -lpthread -lGL -lm -ldl
+          gcc src/*.c third_party/bearssl/*.c \
+            -O1 -s -fno-stack-protector -fno-math-errno -Qn -Werror \
+            -fvisibility=hidden -rdynamic -Werror \
+            -no-pie -fno-pie -m64 -fcf-protection=none \
+            -rdynamic -L ./lib -Wl,--unresolved-symbols=ignore-in-shared-libs \
+            $LATEST_FLAG \
+            -o cc-linux-64-gl1 -lX11 -lXi -lpthread -lGL -lm -ldl
 
-          # =====================
-          # 32-bit build
-          # =====================
-          rm -rf lib
-          wget https://github.com/ClassiCube/rpi-compiling-stuff/raw/main/linux32.zip
-          unzip linux32.zip
+          gcc src/*.c third_party/bearssl/*.c \
+            -O1 -s -fno-stack-protector -fno-math-errno -Qn -Werror \
+            -fvisibility=hidden -rdynamic -Werror \
+            -no-pie -fno-pie -m64 -fcf-protection=none \
+            -rdynamic -L ./lib -Wl,--unresolved-symbols=ignore-in-shared-libs \
+            $LATEST_FLAG -DCC_GFX_BACKEND=CC_GFX_BACKEND_GL2 \
+            -o cc-linux-64-gl2 -lX11 -lXi -lpthread -lGL -lm -ldl
 
-          gcc src/*.c third_party/bearssl/*.c -O1 -s \
-            -fno-stack-protector -fno-math-errno -Qn -Werror \
-            -fvisibility=hidden -rdynamic \
-            -no-pie -fno-pie -m32 -L ./lib \
-            -Wl,--unresolved-symbols=ignore-in-shared-libs \
-            -o cc-linux-32 -lX11 -lXi -lpthread -lGL -lm -ldl
-
-      # =========================
-      # WINDOWS BUILD
-      # =========================
       - name: Build Windows
+        shell: bash
         run: |
+          set -euo pipefail
+
           cp misc/windows/CCicon_64.res src/CCicon_64.res
-          cp misc/windows/CCicon_32.res src/CCicon_32.res
 
           x86_64-w64-mingw32-gcc src/*.c third_party/bearssl/*.c \
             -O1 -s -mwindows -nostartfiles -Wl,-emain_real \
             -DCC_NOMAIN src/CCicon_64.res \
             -o cc-w64.exe -lwinmm -limagehlp
 
-          i686-w64-mingw32-gcc src/*.c third_party/bearssl/*.c \
-            -O1 -s -mwindows -nostartfiles -Wl,-e_main_real \
-            -DCC_NOMAIN src/CCicon_32.res \
-            -o cc-w32.exe -lwinmm -limagehlp
-
-      # =========================
-      # WINDOWS ARM
-      # =========================
       - name: Build Windows ARM
+        shell: bash
         run: |
-          docker run --rm -v $PWD:/work dockcross/windows-arm64 bash -c "
-            cd /work &&
+          set -euo pipefail
+
+          docker run --rm -v "$PWD:/work" dockcross/windows-arm64 bash -lc '
+            set -euo pipefail
+            cd /work
             aarch64-w64-mingw32-gcc src/*.c third_party/bearssl/*.c \
-            -O1 -s -mwindows -nostartfiles -Wl,-emain_real \
-            -DCC_NOMAIN \
-            -o cc-warm64.exe -lwinmm -limagehlp
-          "
+              -O1 -s -mwindows -nostartfiles -Wl,-emain_real \
+              -DCC_NOMAIN \
+              -o cc-warm64.exe -lwinmm -limagehlp
+          '
 
-      # =========================
-      # ANDROID BUILD
-      # =========================
       - name: Build Android
+        shell: bash
         run: |
-          docker run --rm -v $PWD:/work ghcr.io/saschpe/android-ndk:34-jdk17.0.8_7-ndk25.2.9519653-cmake3.22.1 bash -c "
-            cd /work &&
-            mkdir build-tools &&
-            wget https://github.com/ClassiCube/rpi-compiling-stuff/raw/main/build-tools.zip &&
-            unzip build-tools.zip -d build-tools &&
+          set -euo pipefail
 
-            NDK_ROOT=/opt/android-sdk-linux/ndk/25.2.9519653/toolchains/llvm/prebuilt/linux-x86_64/bin &&
-            SRCS='src/*.c src/android/*.c third_party/bearssl/*.c' &&
+          docker run --rm -v "$PWD:/work" ghcr.io/saschpe/android-ndk:34-jdk17.0.8_7-ndk25.2.9519653-cmake3.22.1 bash -lc '
+            set -euo pipefail
+            cd /work
 
-            \$NDK_ROOT/aarch64-linux-android21-clang \$SRCS -O1 -shared -fPIC \
-              -o cc-android.so -lGLESv2 -lEGL -lm -llog
-          "
+            mkdir -p build-tools
+            wget https://github.com/ClassiCube/rpi-compiling-stuff/raw/main/build-tools.zip
+            unzip build-tools.zip -d build-tools
+            chmod +x build-tools/aapt
+            chmod +x build-tools/dx
+            chmod +x build-tools/zipalign
 
-          echo "Android APK step omitted for brevity"
+            LATEST_FLAG=-DCC_COMMIT_SHA=\"${GITHUB_SHA::9}\"
+            DROID_FLAGS="-fPIC -shared -s -O1 -fvisibility=hidden -rdynamic -funwind-tables"
+            COMMON_FLAGS="-O1 -s -fno-stack-protector -fno-math-errno -Qn -Werror"
+            LIBS="-lGLESv2 -lEGL -lm -llog"
+            SRCS="src/*.c src/android/*.c third_party/bearssl/*.c"
 
-      # =========================
-      # PACKAGE
-      # =========================
-      - name: Generate builds
+            ROOT_DIR=$PWD
+            NDK_ROOT="/opt/android-sdk-linux/ndk/25.2.9519653/toolchains/llvm/prebuilt/linux-x86_64/bin"
+            TOOLS_ROOT=$ROOT_DIR/build-tools
+            SDK_ROOT="/opt/android-sdk-linux/platforms/android-34"
+
+            $NDK_ROOT/armv7a-linux-androideabi19-clang $SRCS $COMMON_FLAGS $DROID_FLAGS -march=armv5 -rtlib=libgcc -L $ROOT_DIR/build-tools/runtime $LIBS $LATEST_FLAG -o cc-droid-arm_16
+            $NDK_ROOT/armv7a-linux-androideabi19-clang $SRCS $COMMON_FLAGS $DROID_FLAGS -mfpu=vfp3-d16 $LIBS $LATEST_FLAG -o cc-droid-arm_32
+            $NDK_ROOT/aarch64-linux-android21-clang $SRCS $COMMON_FLAGS $DROID_FLAGS $LIBS $LATEST_FLAG -o cc-droid-arm_64
+            $NDK_ROOT/i686-linux-android21-clang $SRCS $COMMON_FLAGS $DROID_FLAGS $LIBS $LATEST_FLAG -o cc-droid-x86_32
+            $NDK_ROOT/x86_64-linux-android21-clang $SRCS $COMMON_FLAGS $DROID_FLAGS $LIBS $LATEST_FLAG -o cc-droid-x86_64
+
+            cd $ROOT_DIR/misc/android/app/src/main
+            mkdir -p lib lib/armeabi lib/armeabi-v7a lib/arm64-v8a lib/x86 lib/x86_64
+            cp $ROOT_DIR/cc-droid-arm_16 lib/armeabi/libclassicube.so
+            cp $ROOT_DIR/cc-droid-arm_32 lib/armeabi-v7a/libclassicube.so
+            cp $ROOT_DIR/cc-droid-arm_64 lib/arm64-v8a/libclassicube.so
+            cp $ROOT_DIR/cc-droid-x86_32 lib/x86/libclassicube.so
+            cp $ROOT_DIR/cc-droid-x86_64 lib/x86_64/libclassicube.so
+
+            cd $ROOT_DIR/misc/android/app/src/main/java/com/classicube
+            javac *.java -d $ROOT_DIR/misc/android/app/src/main/obj -classpath $SDK_ROOT/android.jar --release 8
+
+            cd $ROOT_DIR/misc/android/app/src/main
+            echo -n "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > debug.keystore
+            $TOOLS_ROOT/dx --dex --output=classes.dex ./obj
+            $TOOLS_ROOT/aapt package -f -M AndroidManifest.xml -S res -F cc-unsigned.apk -I $SDK_ROOT/android.jar
+            $TOOLS_ROOT/aapt add -f cc-unsigned.apk classes.dex lib/armeabi/libclassicube.so lib/armeabi-v7a/libclassicube.so lib/arm64-v8a/libclassicube.so lib/x86/libclassicube.so lib/x86_64/libclassicube.so
+            $TOOLS_ROOT/zipalign -f 4 cc-unsigned.apk cc-signed.apk
+            $TOOLS_ROOT/apksigner sign --ks debug.keystore --ks-pass pass:android cc-signed.apk
+            cp cc-signed.apk $ROOT_DIR/cc.apk
+          '
+
+      - name: Package Linux builds
+        shell: bash
         run: |
-          mkdir -p ClassiCube/audio ClassiCube/texpacks
-          cp audio.zip ClassiCube/audio/classicube.zip
-          cp default.zip ClassiCube/texpacks/classicube.zip
+          set -euo pipefail
+
+          mkdir -p dist/linux32-gl1 dist/linux32-gl2 dist/linux64-gl1 dist/linux64-gl2
 
           make_unix_tar() {
-            cp $2 ClassiCube/ClassiCube
+            local src_bin="$1"
+            local out_tar="$2"
+
+            rm -rf ClassiCube
+            mkdir -p ClassiCube
+            cp "$src_bin" ClassiCube/ClassiCube
             chmod +x ClassiCube/ClassiCube
-            tar -zcvf $1 ClassiCube
-            rm ClassiCube/ClassiCube
+            if [ -f misc/linux/install-desktop-entry.sh ]; then
+              cp misc/linux/install-desktop-entry.sh ClassiCube/install-desktop-entry.sh
+              chmod +x ClassiCube/install-desktop-entry.sh
+            fi
+            tar -zcvf "$out_tar" ClassiCube
+            rm -rf ClassiCube
           }
 
-          make_windows_zip() {
-            cp $2 ClassiCube/ClassiCube.exe
-            zip -r $1 ClassiCube
-            rm ClassiCube/ClassiCube.exe
-          }
+          make_unix_tar cc-linux-32-gl1 cc-linux32.tar.gz
+          make_unix_tar cc-linux-64-gl1 cc-linux64.tar.gz
 
-          make_unix_tar cc-linux32.tar.gz cc-linux-32
-          make_unix_tar cc-linux64.tar.gz cc-linux-64
+      - name: Package Windows build
+        shell: bash
+        run: |
+          set -euo pipefail
 
-          make_windows_zip cc-win32.zip cc-w32.exe
-          make_windows_zip cc-win64.zip cc-w64.exe
+          rm -rf ClassiCube
+          mkdir -p ClassiCube
+          cp cc-w64.exe ClassiCube/ClassiCube.exe
+          zip -r cc-win64.zip ClassiCube
+          rm -rf ClassiCube
 
-      # =========================
-      # RELEASE
-      # =========================
       - name: Create GitHub Release
         run: |
           gh release create "${{ github.event.inputs.release_tag }}" \
             --title "Release ${{ github.event.inputs.release_tag }}" \
-            --notes "Automated release build"
+            --notes "Automated release build" \
+            --draft=false \
+            --prerelease=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload release assets
         run: |
-          for f in *.tar.gz *.zip; do
-            gh release upload "${{ github.event.inputs.release_tag }}" "$f" --clobber
-          done
+          gh release upload "${{ github.event.inputs.release_tag }}" \
+            cc-linux32.tar.gz \
+            cc-linux64.tar.gz \
+            cc-win64.zip \
+            cc-warm64.exe \
+            cc.apk \
+            --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: ./.github/actions/notify_success
+        with:
+          DESTINATION_URL: '${{ secrets.NOTIFY_URL }}'
+          WORKFLOW_NAME: 'release'
+
+      - uses: ./.github/actions/notify_failure
+        if: failure()
+        with:
+          NOTIFY_MESSAGE: 'Failed to produce release'
+          WEBHOOK_URL: '${{ secrets.WEBHOOK_URL }}'
