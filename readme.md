@@ -37,6 +37,7 @@ Instructions:
 
 - [@impresson](https://www.github.com/impresson)
 - [@hexcode](https://www.github.com/bizthe)
+- [@Blue-3dx](https://github.com/Blue-3dx)
 
 - [Classicube](https://classicube.net)
 
