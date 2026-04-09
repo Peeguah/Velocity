@@ -932,13 +932,13 @@ static cc_bool LocalPlayer_HandleSetSpawn(int key, struct InputDevice* device) {
 	
 	if ((p->Hacks.CanNoclip || ForceHax_enabled) && p->Hacks.Enabled) {
 
-		if (!p->Hacks.Enabled && !p->Base.OnGround) {
+		if ((!p->Hacks.CanNoclip || !ForceHax_enabled) && !p->Base.OnGround) {
 			Chat_AddRaw("&cCannot set spawn midair when noclip is disabled");
 			return false;
 		}
 
 		/* Spawn is normally centered to match vanilla Minecraft classic */
-		if ((p->Hacks.CanNoclip || ForceHax_enabled) && p->Hacks.Enabled) {
+		if ((!p->Hacks.CanNoclip || !ForceHax_enabled) && !p->Hacks.Enabled) {
 			/* Don't want to use Position because it is interpolated between prev and next. */
 			/* This means it can be halfway between stepping up a stair and clip through the floor. */
 			p->Spawn   = p->Base.prev.pos;
