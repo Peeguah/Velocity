@@ -23,6 +23,7 @@
 #include "ExtMath.h"
 #include "Protocol.h"
 #include "Camera.h"
+#include "Window.h"
 
 #define COMMANDS_PREFIX "/client"
 #define COMMANDS_PREFIX_SPACE "/client "
@@ -58,6 +59,8 @@ cc_bool NoSlow_enabled = false;
 cc_bool DontHoldThis_enabled = false;
 cc_bool Parkour_enabled = false;
 cc_bool Scaffold_Sustain = false;
+cc_bool NoRotate_enabled = false;
+cc_bool HeadFlip_enabled = false;	
 // cc_bool ArrayList_enabled = false;
 // cc_bool AutoJump_always = true;
 float SpinSpeed = 1;
@@ -979,7 +982,7 @@ static struct ChatCommand NametagsCommand = {
 *#########################################################################################################################*/
 
 static void ReachCommand_Execute(const cc_string* args, int argsCount) {
-    if (argsCount != 1) {
+    if (!argsCount) {
         Chat_AddRaw("&cUsage: /client reach <distance>");
         return;
     }
@@ -1007,7 +1010,7 @@ static struct ChatCommand ReachCommand = {
 
 static void SpeedCommand_Execute(const cc_string* args, int argsCount) {
     float SetSpeed;
-	if (argsCount != 1) {
+	if (!argsCount) {
         Chat_AddRaw("&cUsage: /client speed <speed>");
         return;
     }
@@ -1068,7 +1071,7 @@ static struct ChatCommand JesusCommand = {
 static void GravityCommand_Execute(const cc_string* args, int argsCount) {
 	float SetGravity;
 
-	if (argsCount != 1) {
+	if (!argsCount) {
 		Chat_AddRaw("&cUsage: /client gravity <gravity> Default is 0.08");
 		return;
 	}
@@ -1183,7 +1186,7 @@ static struct ChatCommand StrafeCommand = {
 
 static void StepCommand_Execute(const cc_string* args, int argsCount) {
 	float step;
-	if (argsCount != 1) {
+	if (!argsCount) {
 		Chat_AddRaw("&cUsage: /client step <height>");
 		return;
 	}
@@ -1212,7 +1215,7 @@ static struct ChatCommand StepCommand = {
 static void HighJumpCommand_Execute(const cc_string* args, int argsCount) {
 	float JumpHeight;
 
-	if (argsCount != 1) {
+	if (!argsCount) {
 		Chat_AddRaw("&cUsage: /client highjump <height> Default is 0.42");
 		return;
 	}
@@ -1238,42 +1241,98 @@ static struct ChatCommand HighJumpCommand = {
 /*########################################################################################################################*
 *---------------------------------------------------------Spin------------------------------------------------------------*
 *#########################################################################################################################*/
+cc_bool Spin_ServerSide = false;
+struct Spin s;
 
 static void SpinCommand_Execute(const cc_string* args, int argsCount) {
-	float Spin_Command;
+	float value;
 
-	if (argsCount != 1) {
-	Spin_enabled = !Spin_enabled;
-	    Chat_AddRaw(Spin_enabled ? "&aSpin enabled" : "&cSpin disabled");
+	if (argsCount == 0) {
+		Spin_enabled = !Spin_enabled;
+		Chat_AddRaw(Spin_enabled ? "&aSpin enabled" : "&cSpin disabled");
 		return;
 	}
-	if (!Convert_ParseFloat(args, &Spin_Command)) {
-		Chat_Add1("&cInvalid number.", NULL);
+
+	if (argsCount == 1) {
+		if (String_CaselessEqualsConst(args, "Yaw")) {
+			s.YawEnabled = !s.YawEnabled;
+			Chat_AddRaw(s.YawEnabled ? "&aYaw enabled" : "&cYaw disabled");
+
+		} else if (String_CaselessEqualsConst(args, "Pitch")) {
+			s.PitchEnabled = !s.PitchEnabled;
+			Chat_AddRaw(s.PitchEnabled ? "&aPitch enabled" : "&cPitch disabled");
+
+		} else if (String_CaselessEqualsConst(args, "ServerSide")) {
+			Spin_ServerSide = !Spin_ServerSide;
+			Chat_AddRaw(Spin_ServerSide ? "&aServerSide enabled" : "&cServerSide disabled");
+			if (Spin_ServerSide) Chat_AddRaw("&cNOTE: ServerSide spin is unstable and may crash"); //IDK why and I hate that this happens
+
+		} else {
+			Chat_AddRaw("&cUsage: /client spin <Yaw/Pitch/ServerSide>");
+		}
 		return;
 	}
-	SpinSpeed = Spin_Command;
-	    Chat_AddRaw("&aSpin Speed set");
+
+	if (argsCount == 2) {
+		if (String_CaselessEqualsConst(args, "Yaw")) {
+			if (!Convert_ParseFloat(&args[1], &value)) {
+				Chat_AddRaw("&cInvalid number.");
+				return;
+			}
+			s.YawSpeed = value;
+			Chat_AddRaw("&aYaw speed set");
+
+		} else if (String_CaselessEqualsConst(args, "Pitch")) {
+			if (!Convert_ParseFloat(&args[1], &value)) {
+				Chat_AddRaw("&cInvalid number.");
+				return;
+			}
+			s.PitchSpeed = value;
+			Chat_AddRaw("&aPitch speed set");
+
+		} else {
+			Chat_AddRaw("&cUsage: /client spin <Yaw/Pitch> <Speed>");
+		}
+		return;
+	}
+
+	Chat_AddRaw("&cUsage: /client spin <Yaw/Pitch/ServerSide> [Speed]");
 }
 
 static struct ChatCommand SpinCommand = {
 	"Spin", SpinCommand_Execute, 0,
 	{
-		"&a/client Spin",
+		"&a/client Spin <Yaw/Pitch/ServerSide> [Speed]",
 		"&eYou spin me right round baby right round.",
 	}
 };
 
 static void Spin_Tick(struct ScheduledTask* task) {
-    if (!Spin_enabled) return;
+	if (!Spin_enabled) return;
+	if (Window_Main.Inactive) return;
 
-        struct LocalPlayer* p = Entities.CurPlayer;
-        struct Entity* e = &p->Base;
+	struct LocalPlayer* p = Entities.CurPlayer;
+	struct Entity* e = &p->Base;
 
-        struct LocationUpdate update;
-        update.flags = LU_HAS_YAW | LU_HAS_PITCH;
-        update.yaw   = e->Yaw + SpinSpeed;
-        update.pitch = Math_ClampAngle(e->Pitch);
-        e->VTABLE->SetLocation(e, &update);
+	if (Spin_ServerSide) {
+		s.Yaw += s.YawSpeed;
+		if (s.Yaw >= 360.0f) s.Yaw -= 360.0f;
+		if (s.Yaw < 0.0f) s.Yaw += 360.0f;
+
+		s.Pitch += s.PitchSpeed;
+		if (s.Pitch >= 360.0f) s.Pitch -= 360.0f;
+		if (s.Pitch < 0.0f) s.Pitch += 360.0f;
+	} else {
+		struct LocationUpdate update;
+		update.flags = LU_HAS_YAW | LU_HAS_PITCH;
+
+		if (s.YawEnabled) update.yaw = e->Yaw + s.YawSpeed;
+		else update.yaw = e->Yaw;
+		if (s.PitchEnabled)	update.pitch = e->Pitch + s.PitchSpeed;
+		else update.pitch = e->Pitch;
+
+		e->VTABLE->SetLocation(e, &update);
+	}
 }
 // TODO: Add pitch;
 
@@ -1466,7 +1525,7 @@ void VclipCommand_Execute(const cc_string* args, int argsCount){
     float offset;
     Vec3 v;
 
-    if (argsCount != 1) {
+    if (!argsCount) {
         Chat_AddRaw("&cYou did not specify the Y offset.");
         return;
     }
@@ -1502,7 +1561,7 @@ void HclipCommand_Execute(const cc_string* args, int argsCount) {
     float offset;
     Vec3 v;
 
-    if (argsCount != 1) {
+    if (!argsCount) {
         Chat_AddRaw("&cYou did not specify the X offset");
     	return;
 	}
@@ -1618,7 +1677,7 @@ static struct ChatCommand CamNoclipCommand = {
 static void ViewDistCommand_Execute(const cc_string* args, int argsCount) {
     int SetViewDist;
 
-    if (argsCount != 1) {
+    if (!argsCount) {
         Chat_AddRaw("&cUsage: /client viewdist <distance>");
         return;
     }
@@ -1790,6 +1849,40 @@ static struct ChatCommand ParkourCommand = {
 };
 
 /*########################################################################################################################*
+*------------------------------------------------------NoRotate-----------------------------------------------------------*
+*#########################################################################################################################*/
+
+static void NoRotateCommand_Execute(const cc_string* args, int argsCount) {
+	NoRotate_enabled = !NoRotate_enabled;
+	Chat_AddRaw(NoRotate_enabled ? "&aNoRotate enabled" : "&cNoRotate disabled");
+}
+
+static struct ChatCommand NoRotateCommand = {
+	"NoRotate", NoRotateCommand_Execute, 0,
+	{
+		"&a/client NoRotate",
+		"&eDisables Server camera rotation",
+	}
+};
+
+/*########################################################################################################################*
+*------------------------------------------------------HeadFlip-----------------------------------------------------------*
+*#########################################################################################################################*/
+
+static void HeadFlipCommand_Execute(const cc_string* args, int argsCount) {
+	HeadFlip_enabled = !HeadFlip_enabled;
+	Chat_AddRaw(HeadFlip_enabled ? "&aHeadFlip enabled" : "&cHeadFlip disabled");
+}
+
+static struct ChatCommand HeadFlipCommand = {
+	"HeadFlip", HeadFlipCommand_Execute, 0,
+	{
+		"&a/client HeadFlip",
+		"&eDisables Server camera rotation",
+	}
+};
+
+/*########################################################################################################################*
 *------------------------------------------------------Commands component-------------------------------------------------*
 *#########################################################################################################################*/
 static void OnInit(void) {
@@ -1844,6 +1937,8 @@ static void OnInit(void) {
 	Commands_Register(&NoSlowCommand);
 	Commands_Register(&DontHoldThisCommand);
 	Commands_Register(&ParkourCommand);
+	Commands_Register(&NoRotateCommand);
+	Commands_Register(&HeadFlipCommand);
 	// Commands_Register(&ArrayListCommand);
 	/*Velocity Events*/
 	ScheduledTask_Add(0.01, Spin_Tick);
@@ -1869,6 +1964,6 @@ struct IGameComponent Commands_Component = {
 // Make step height higher
 //Noslow
 //ForceViewDist
-//Fix Parkour logic.
-
+//Update spin so it allows for yaw an pitch and is server sided
+ 
 

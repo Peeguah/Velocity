@@ -52,6 +52,7 @@ Instructions:
 - NoRender
 - CamNoclip
 - Freecam
+- NoRotate
 
 **Movement**
 - Tp (Position | Player)

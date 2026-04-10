@@ -36,13 +36,26 @@ extern cc_bool NoSlow_enabled;
 extern cc_bool DontHoldThis_enabled;
 extern cc_bool Parkour_enabled;
 extern cc_bool Scaffold_Sustain;
+extern cc_bool NoRotate_enabled;
+extern cc_bool Spin_ServerSide;
+extern cc_bool HeadFlip_enabled;
+extern cc_bool Spin_enabled;
 // extern cc_bool AutoJump_always;
 // extern cc_bool ArrayList_enabled;
 extern int SustainY;
 extern float Speed;
 extern float StepHeight;
 
+struct Spin {
+	float YawSpeed;
+	float PitchSpeed;
+	float Yaw;
+	float Pitch;
+	cc_bool YawEnabled;
+	cc_bool PitchEnabled;
+};
 
+extern struct Spin s;
 
 cc_bool Commands_Execute(const cc_string* input);
 
