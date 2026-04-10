@@ -484,7 +484,6 @@ static cc_uint8* Classic_WritePosition(cc_uint8* data, Vec3 pos, float yaw, floa
 			Mem_WriteU16_BE(data, y); data += 2;
 			Mem_WriteU16_BE(data, z); data += 2;
 		}
-		if (Window_Main.Inactive) return data;
 		float useYaw   = s.YawEnabled && Spin_ServerSide ? s.Yaw   : yaw;
 		float usePitch = s.PitchEnabled && Spin_ServerSide ? s.Pitch : pitch;
 
@@ -703,7 +702,7 @@ static void Classic_RelPosAndOrientationUpdate(cc_uint8* data) {
 	update.pos.x = (cc_int8)data[1] / 32.0f;
 	update.pos.y = (cc_int8)data[2] / 32.0f;
 	update.pos.z = (cc_int8)data[3] / 32.0f;
-	if (NoRotate_enabled) {
+	if (!NoRotate_enabled || (Spin_enabled && Spin_ServerSide)){
 	update.yaw   = Math_Packed2Deg(data[4]);
 	update.pitch = Math_Packed2Deg(data[5]);
 	}
@@ -724,7 +723,7 @@ static void Classic_RelPositionUpdate(cc_uint8* data) {
 static void Classic_OrientationUpdate(cc_uint8* data) {
 	struct LocationUpdate update;
 	EntityID id = data[0];
-	if (NoRotate_enabled) return;
+	if (NoRotate_enabled || (Spin_enabled && Spin_ServerSide)) return;
 
 	update.flags = LU_HAS_YAW | LU_HAS_PITCH | LU_ORI_INTERPOLATE;
 	update.yaw   = Math_Packed2Deg(data[1]);
@@ -805,7 +804,7 @@ static void Classic_ReadAbsoluteLocation(cc_uint8* data, EntityID id, cc_uint8 f
 	update.pos.x = x/32.0f;
 	update.pos.y = y/32.0f;
 	update.pos.z = z/32.0f;
-	if (!NoRotate_enabled) {
+	if (!NoRotate_enabled || (Spin_enabled && Spin_ServerSide)) {
 		update.yaw   = Math_Packed2Deg(*data++);
 		update.pitch = Math_Packed2Deg(*data++);
 	}
