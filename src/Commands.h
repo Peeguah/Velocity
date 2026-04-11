@@ -39,12 +39,15 @@ extern cc_bool Scaffold_Sustain;
 extern cc_bool NoRotate_enabled;
 extern cc_bool Spin_ServerSide;
 extern cc_bool HeadFlip_enabled;
+extern cc_bool Phase_enabled;
 extern cc_bool Spin_enabled;
+extern cc_bool Glide_enabled;
 // extern cc_bool AutoJump_always;
 // extern cc_bool ArrayList_enabled;
 extern int SustainY;
 extern float Speed;
 extern float StepHeight;
+extern float Glide_Speed;
 
 struct Spin {
 	float YawSpeed;

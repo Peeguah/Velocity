@@ -659,6 +659,13 @@ static void Collisions_CollideWithReachableBlocks(struct CollisionsComp* comp, i
 		Vec3_Add(&finalBB.Min, &entityBB->Min, &v);
 		Vec3_Add(&finalBB.Max, &entityBB->Max, &v);
 
+		if (Phase_enabled) {
+			if (finalBB.Min.y + COLLISIONS_ADJ >= blockBB.Max.y) {
+				Collisions_ClipYMax(comp, &blockBB, entityBB, extentBB, &size);
+			}
+			continue;
+		}
+
 		/* if we have hit the bottom of a block, we need to change the axis we test first */
 		if (!comp->HitYMin) {
 			if (finalBB.Min.y + COLLISIONS_ADJ >= blockBB.Max.y) {
@@ -859,6 +866,7 @@ static void PhysicsComp_Move(struct PhysicsComp* comp, Vec3 drag, float gravity,
 	entity->Velocity.y /= yMul;
 	Vec3_Mul3By(&entity->Velocity, &drag);
 	entity->Velocity.y -= gravity;
+	if (Glide_enabled) entity->Velocity.y -= Glide_Speed;
 }
 
 static void PhysicsComp_MoveFlying(struct PhysicsComp* comp, Vec3 vel, float factor, Vec3 drag, float gravity, float yMul) {

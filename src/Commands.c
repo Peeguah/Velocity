@@ -61,6 +61,8 @@ cc_bool Parkour_enabled = false;
 cc_bool Scaffold_Sustain = false;
 cc_bool NoRotate_enabled = false;
 cc_bool HeadFlip_enabled = false;	
+cc_bool Phase_enabled = false;
+cc_bool Glide_enabled = false;
 // cc_bool ArrayList_enabled = false;
 // cc_bool AutoJump_always = true;
 float SpinSpeed = 1;
@@ -68,6 +70,7 @@ float Speed = 0.0f;
 float StepHeight = 0.0f;
 int SustainY = 0;
 float Freecam_savedX, Freecam_savedY, Freecam_savedZ;
+float Glide_Speed = 0.0f;
 
 void Commands_Register(struct ChatCommand* cmd) {
 	LinkedList_Append(cmd, cmds_head, cmds_tail);
@@ -1883,6 +1886,53 @@ static struct ChatCommand HeadFlipCommand = {
 };
 
 /*########################################################################################################################*
+*------------------------------------------------------Phase-------------------------------------------------------------*
+*#########################################################################################################################*/
+
+static void PhaseCommand_Execute(const cc_string* args, int argsCount) {
+	Phase_enabled = !Phase_enabled;
+	Chat_AddRaw(Phase_enabled ? "&aPhase enabled" : "&cPhase disabled");
+}
+
+static struct ChatCommand PhaseCommand = {
+	"Phase", PhaseCommand_Execute, 0,
+	{
+		"&a/client Phase",
+		"&eAllows you to phase through blocks.",
+	}
+};
+
+/*########################################################################################################################*
+*---------------------------------------------------------Glide----------------------------------------------------------*
+*#########################################################################################################################*/
+
+static void GlideCommand_Execute(const cc_string* args, int argsCount) {
+	float GlideSpeed;
+
+	if (!argsCount) {
+		Glide_enabled = !Glide_enabled;
+		Chat_AddRaw(Glide_enabled ? "&aGlide enabled" : "&cGlide disabled");
+		return;
+	}
+
+	if (!Convert_ParseFloat(args, &GlideSpeed)) {
+		Chat_Add1("&cInvalid number.", NULL);
+		return;
+	}
+
+	Glide_Speed = GlideSpeed;
+	Chat_AddRaw("&eGlide speed set");
+}
+
+static struct ChatCommand GlideCommand = {
+	"Glide", GlideCommand_Execute, 0,
+	{
+		"&a/client glide <speed>",
+		"&eSets the glide speed. Default is 0.42.",
+	}
+};
+
+/*########################################################################################################################*
 *------------------------------------------------------Commands component-------------------------------------------------*
 *#########################################################################################################################*/
 static void OnInit(void) {
@@ -1939,6 +1989,8 @@ static void OnInit(void) {
 	Commands_Register(&ParkourCommand);
 	Commands_Register(&NoRotateCommand);
 	Commands_Register(&HeadFlipCommand);
+	Commands_Register(&PhaseCommand);
+	Commands_Register(&GlideCommand);
 	// Commands_Register(&ArrayListCommand);
 	/*Velocity Events*/
 	ScheduledTask_Add(0.01, Spin_Tick);
@@ -1965,5 +2017,5 @@ struct IGameComponent Commands_Component = {
 //Noslow
 //ForceViewDist
 //Update spin so it allows for yaw an pitch and is server sided
- 
+// Follow command coming!!!!
 

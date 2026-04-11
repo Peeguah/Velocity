@@ -73,6 +73,8 @@ Instructions:
 - Airwalk
 - NoSlow
 - Parkour
+- Glide
+- Phase
 
 **Other**
 - ForceHax
@@ -88,6 +90,7 @@ Instructions:
 - ViewDist
 - AutoClicker
 - DontHoldThis
+- HeadFlip
 
 ## Current Features
 - Coloured F3 Menu
