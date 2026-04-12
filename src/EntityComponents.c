@@ -866,7 +866,7 @@ static void PhysicsComp_Move(struct PhysicsComp* comp, Vec3 drag, float gravity,
 	entity->Velocity.y /= yMul;
 	Vec3_Mul3By(&entity->Velocity, &drag);
 	entity->Velocity.y -= gravity;
-	if (Glide_enabled) entity->Velocity.y -= Glide_Speed;
+	if (Glide_enabled) entity->Velocity.y = Glide_Speed;
 }
 
 static void PhysicsComp_MoveFlying(struct PhysicsComp* comp, Vec3 vel, float factor, Vec3 drag, float gravity, float yMul) {

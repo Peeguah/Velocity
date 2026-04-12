@@ -1312,7 +1312,6 @@ static struct ChatCommand SpinCommand = {
 
 static void Spin_Tick(struct ScheduledTask* task) {
 	if (!Spin_enabled) return;
-	if (Window_Main.Inactive) return;
 
 	struct LocalPlayer* p = Entities.CurPlayer;
 	struct Entity* e = &p->Base;
@@ -1337,7 +1336,6 @@ static void Spin_Tick(struct ScheduledTask* task) {
 		e->VTABLE->SetLocation(e, &update);
 	}
 }
-// TODO: Add pitch;
 
 /*########################################################################################################################*
 *------------------------------------------------------NoReconnectDelay---------------------------------------------------*
