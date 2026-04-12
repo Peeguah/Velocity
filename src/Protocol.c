@@ -1522,6 +1522,7 @@ static void CalcVelocity(float* vel, cc_uint8* src, cc_uint8 mode) {
 }
 
 static void CPE_VelocityControl(cc_uint8* data) {
+	if (NoKnockback_enabled) return;
 	struct LocalPlayer* p = Entities.CurPlayer;
 	CalcVelocity(&p->Base.Velocity.x, data + 0, data[12]);
 	CalcVelocity(&p->Base.Velocity.y, data + 4, data[13]);

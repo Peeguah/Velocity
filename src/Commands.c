@@ -63,6 +63,7 @@ cc_bool NoRotate_enabled = false;
 cc_bool HeadFlip_enabled = false;	
 cc_bool Phase_enabled = false;
 cc_bool Glide_enabled = false;
+cc_bool NoKnockback_enabled = false;
 // cc_bool ArrayList_enabled = false;
 // cc_bool AutoJump_always = true;
 float SpinSpeed = 1;
@@ -1931,6 +1932,23 @@ static struct ChatCommand GlideCommand = {
 };
 
 /*########################################################################################################################*
+*------------------------------------------------------NoKnockback------------------------------------------------------*
+*#########################################################################################################################*/
+
+static void NoKnockbackCommand_Execute(const cc_string* args, int argsCount) {
+	NoKnockback_enabled = !NoKnockback_enabled;
+	Chat_AddRaw(NoKnockback_enabled ? "&aNoKnockback enabled" : "&cNoKnockback disabled");
+}
+
+static struct ChatCommand NoKnockbackCommand = {
+	"NoKnockback", NoKnockbackCommand_Execute, 0,
+	{
+		"&a/client NoKnockback",
+		"&eDisables velocity control from server.",
+	}
+};
+
+/*########################################################################################################################*
 *------------------------------------------------------Commands component-------------------------------------------------*
 *#########################################################################################################################*/
 static void OnInit(void) {
@@ -1989,6 +2007,7 @@ static void OnInit(void) {
 	Commands_Register(&HeadFlipCommand);
 	Commands_Register(&PhaseCommand);
 	Commands_Register(&GlideCommand);
+	Commands_Register(&NoKnockbackCommand);
 	// Commands_Register(&ArrayListCommand);
 	/*Velocity Events*/
 	ScheduledTask_Add(0.01, Spin_Tick);

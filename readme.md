@@ -75,6 +75,7 @@ Instructions:
 - Parkour
 - Glide
 - Phase
+- NoKnockback
 
 **Other**
 - ForceHax
