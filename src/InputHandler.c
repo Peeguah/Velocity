@@ -436,7 +436,7 @@ static void InputHandler_PlaceBlock(void) {
 	/* undeletable gas blocks can't be replaced with other blocks */
 	if (Blocks.Collide[old] == COLLIDE_NONE && !Blocks.CanDelete[old]) return;
 
-	if (!CheckIsFree(block)) return;
+	if (!CheckIsFree(block) && ForcePlace_enabled) return;
 
 	Game_ChangeBlock(pos.x, pos.y, pos.z, block);
 	Event_RaiseBlock(&UserEvents.BlockChanged, pos, old, block);

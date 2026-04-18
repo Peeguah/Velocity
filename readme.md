@@ -92,6 +92,7 @@ Instructions:
 - AutoClicker
 - DontHoldThis
 - HeadFlip
+- ForcePlace
 
 ## Current Features
 - Coloured F3 Menu
