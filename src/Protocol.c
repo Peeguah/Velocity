@@ -707,7 +707,7 @@ static void Classic_RelPosAndOrientationUpdate(cc_uint8* data) {
 	update.pitch = Math_Packed2Deg(data[5]);
 	}
 	UpdateLocation(id, &update);
-} // Update freecam
+}
 
 static void Classic_RelPositionUpdate(cc_uint8* data) {
 	struct LocationUpdate update;
@@ -718,7 +718,7 @@ static void Classic_RelPositionUpdate(cc_uint8* data) {
 	update.pos.y = (cc_int8)data[2] / 32.0f;
 	update.pos.z = (cc_int8)data[3] / 32.0f;
 	UpdateLocation(id, &update);
-} // Update Freecam
+}
 
 static void Classic_OrientationUpdate(cc_uint8* data) {
 	struct LocationUpdate update;
@@ -776,7 +776,7 @@ static void Classic_ReadAbsoluteLocation(cc_uint8* data, EntityID id, cc_uint8 f
 	struct LocationUpdate update;
 	int x, y, z;
 	cc_uint8 mode;
-	if (NoSetBack_enabled) return;
+	if (NoSetBack_enabled & id == 0) return;
 
 	if (IsSupported(extEntityPos_Ext)) {
 		x = (int)Mem_ReadU32_BE(&data[0]);
@@ -1573,10 +1573,10 @@ static void CPE_PluginMessage(cc_uint8* data) {
 }
 
 static void CPE_ExtEntityTeleport(cc_uint8* data) {
-	if (NoSetBack_enabled) return;
 	EntityID id = *data++;
 	cc_uint8 packetFlags = *data++;
 	cc_uint8 flags = 0;
+	if (NoSetBack_enabled && id == 0) return;
 
 	/* bit  0    includes position */
 	/* bits 1-2  position mode(absolute_instant / absolute_smooth / relative_smooth / relative_seamless) */
