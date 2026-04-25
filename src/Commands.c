@@ -2052,6 +2052,5 @@ struct IGameComponent Commands_Component = {
 // Make step height higher
 //Noslow
 //ForceViewDist
-//Update spin so it allows for yaw an pitch and is server sided
 // Follow command coming!!!!
 

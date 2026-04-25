@@ -961,7 +961,6 @@ void Scaffold_Tick(void* obj) { // OLD CODE
 	int y = Math_Floor(pos.y) - (hacks->FlyingDown && !Scaffold_Sustain ? 2 : 1);
     if (Scaffold_Sustain) {
 		if (SustainY > y) return;
-		y = SustainY;
 	}
     int z = Math_Floor(pos.z);
 	
