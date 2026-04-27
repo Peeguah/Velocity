@@ -776,7 +776,7 @@ static void Classic_ReadAbsoluteLocation(cc_uint8* data, EntityID id, cc_uint8 f
 	struct LocationUpdate update;
 	int x, y, z;
 	cc_uint8 mode;
-	if (NoSetBack_enabled & id == 0) return;
+	if (NoSetBack_enabled && id == 0) return;
 
 	if (IsSupported(extEntityPos_Ext)) {
 		x = (int)Mem_ReadU32_BE(&data[0]);
