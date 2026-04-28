@@ -1016,7 +1016,7 @@ static cc_bool LocalPlayer_TriggerHalfSpeed(int key, struct InputDevice* device)
 	cc_bool touch = device->type == INPUT_DEVICE_TOUCH;
 	if (Gui.InputGrab) return false;
 
-	hacks->HalfSpeeding = (!touch || !hacks->HalfSpeeding) && ((hacks->CanSpeed || ForceHax_enabled) && hacks->Enabled);
+	hacks->HalfSpeeding = ((!touch || !hacks->HalfSpeeding) && hacks->Enabled);
 	return true;
 }
 
@@ -1025,7 +1025,7 @@ static cc_bool LocalPlayer_TriggerSpeed(int key, struct InputDevice* device) {
 	cc_bool touch = device->type == INPUT_DEVICE_TOUCH;
 	if (Gui.InputGrab) return false;
 
-	hacks->Speeding = (!touch || !hacks->Speeding) && ((hacks->CanSpeed || ForceHax_enabled) && hacks->Enabled);
+	hacks->Speeding = ((!touch || !hacks->Speeding) && hacks->Enabled);
 	return true;
 }
 
