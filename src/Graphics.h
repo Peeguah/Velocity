@@ -308,6 +308,8 @@ USAGE NOTES:
 */
 /* Creates a new vertex buffer */
 CC_API GfxResourceID Gfx_CreateVb(VertexFormat fmt, int count);
+/* Attempts to create a new vertex buffer, or 0 if it fails to */
+CC_API GfxResourceID Gfx_TryCreateStaticVb(VertexFormat fmt, int count);
 /* Sets the currently active vertex buffer */
 CC_API void Gfx_BindVb(GfxResourceID vb);
 /* Deletes the given vertex buffer, then sets it to 0 */
@@ -362,6 +364,8 @@ USAGE NOTES:
 /* Optional draw hints used by some rendering backends to speed up 2D drawing */
 typedef enum DrawHints_ {
 	DRAW_HINT_NONE   = 0,
+	/* Vertices do not require clipping with the planes set in CC_CLIPPING_FLAGS */
+	DRAW_HINT_NOCLIP = 0x01,
 	/* Vertices are 2D rects with possible texture scaling and/or repeating */
 	DRAW_HINT_SPRITE = 0x02,
 	/* Vertices are 2D rects with no texture scaling or repeating */
@@ -379,7 +383,7 @@ CC_API void Gfx_DrawVb_IndexedTris_Range(int verticesCount, int startVertex, Dra
 /* Renders vertices from the currently bound vertex and index buffer as triangles */
 CC_API void Gfx_DrawVb_IndexedTris(int verticesCount);
 /* Special case Gfx_DrawVb_IndexedTris_Range for map renderer */
-void Gfx_DrawIndexedTris_T2fC4b(int verticesCount, int startVertex);
+void Gfx_DrawIndexedTris_T2fC4b(int verticesCount, int startVertex, DrawHints hints);
 
 
 /*########################################################################################################################*
@@ -418,8 +422,14 @@ CC_API void Gfx_LoadMatrix(MatrixType type, const struct Matrix* matrix);
 CC_API void Gfx_EnableTextureOffset(float x, float y);
 /* Disables texture U/V translation */
 CC_API void Gfx_DisableTextureOffset(void);
+
 /* Loads given modelview and projection matrices, then calculates the combined MVP matrix */
 void Gfx_LoadMVP(const struct Matrix* view, const struct Matrix* proj, struct Matrix* mvp);
+#ifdef CC_CLIPPING_FLAGS
+cc_bool Gfx_CanSphereSkipClipping(float x, float y, float z, float radius);
+#else
+static CC_INLINE cc_bool Gfx_CanSphereSkipClipping(float x, float y, float z, float radius) { return false; }
+#endif
 
 /* Calculates an orthographic projection matrix suitable with this backend. (usually for 2D) */
 void Gfx_CalcOrthoMatrix(struct Matrix* matrix, float width, float height, float zNear, float zFar);

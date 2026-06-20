@@ -177,6 +177,9 @@ struct GPUTexture {
 static struct GPUTexture tex_list[MAX_TEXTURE_COUNT];
 static struct GPUTexture* tex_active;
 
+#define _PVR_RAM_SIZE (8 * 1024 * 1024)
+/* PVR_RAM_SIZE is no longer constant in KOS master (devkit/naomi has 16 MB VRAM) */
+
 // For PVR2 GPU, highly recommended that multiple textures don't cross the same 2048 byte VRAM page alignment
 // So to avoid this, ensure that each texture is allocated at the start of a 2048 byte VRAM page
 #define TEXMEM_BLOCK_SIZE 2048
@@ -188,7 +191,7 @@ static struct GPUTexture* tex_active;
 
 #define BLOCK_TO_TEXMEM(block) (cc_uint16*)(texmem_base + (block) * TEXMEM_BLOCK_SIZE)
 
-#define TEXMEM_MAX_BLOCKS (PVR_RAM_SIZE / TEXMEM_BLOCK_SIZE)
+#define TEXMEM_MAX_BLOCKS (_PVR_RAM_SIZE / TEXMEM_BLOCK_SIZE)
 // Base address in VRAM for textures
 static cc_uint8* texmem_base;
 // Total number of blocks available for textures in VRAM
@@ -804,6 +807,32 @@ void Gfx_SetFogMode(FogFunc func) {
 
 
 /*########################################################################################################################*
+*----------------------------------------------------------Frustum--------------------------------------------------------*
+*#########################################################################################################################*/
+static struct Plane { float a, b, c, d; } nearPlane;
+
+static void NormalisePlane(struct Plane* plane) {
+	float val1 = plane->a, val2 = plane->b, val3 = plane->c;
+	float t = Math_SqrtF(val1 * val1 + val2 * val2 + val3 * val3);
+	plane->a /= t; plane->b /= t; plane->c /= t; plane->d /= t;
+}
+
+static void CalcNearFrustumPlane(struct Matrix* clip) {
+	/* Extract the NEAR plane */
+	nearPlane.a = clip->row1.z;
+	nearPlane.b = clip->row2.z;
+	nearPlane.c = clip->row3.z;
+	nearPlane.d = clip->row4.z;
+	NormalisePlane(&nearPlane);
+}
+
+cc_bool Gfx_CanSphereSkipClipping(float x, float y, float z, float radius) {
+	float d = nearPlane.a * x + nearPlane.b * y + nearPlane.c * z + nearPlane.d;
+	return d >= radius; // sphere entirely in front of plane
+}
+
+
+/*########################################################################################################################*
 *---------------------------------------------------------Matrices--------------------------------------------------------*
 *#########################################################################################################################*/
 static matrix_t CC_ALIGNED(32) _proj, _view;
@@ -825,6 +854,7 @@ void Gfx_LoadMVP(const struct Matrix* view, const struct Matrix* proj, struct Ma
 	Gfx_LoadMatrix(MATRIX_VIEW, view);
 	Gfx_LoadMatrix(MATRIX_PROJ, proj);
 	Matrix_Mul(mvp, view, proj);
+	CalcNearFrustumPlane(mvp);
 }
 
 
@@ -875,8 +905,12 @@ cc_bool Gfx_GetUIOptions(struct MenuOptionsScreen* s) { return false; }
 *#########################################################################################################################*/
 static cc_bool loggedNoVRAM;
 
-extern Vertex* DrawColouredQuads(const void* src, Vertex* dst, int numQuads);
-extern Vertex* DrawTexturedQuads(const void* src, Vertex* dst, int numQuads);
+extern Vertex* DrawColouredQuads_Clip(const void* src, Vertex* dst, int numQuads);
+extern Vertex* DrawTexturedQuads_Clip(const void* src, Vertex* dst, int numQuads);
+extern Vertex* DrawColouredQuads_Fast(const void* src, Vertex* dst, int numQuads);
+extern Vertex* DrawTexturedQuads_Fast(const void* src, Vertex* dst, int numQuads);
+
+extern void DrawTexturedQuads_Direct(const void* src, int dst, int numQuads);
 
 static Vertex* ReserveOutput(struct CommandsList* list, cc_uint32 elems) {
 	Vertex* beg;
@@ -894,7 +928,7 @@ static Vertex* ReserveOutput(struct CommandsList* list, cc_uint32 elems) {
 	}
 }
 
-void DrawQuads(int count, void* src) {
+static void DrawQuads(int count, void* src, DrawHints hints) {
 	if (!count) return;
 	struct CommandsList* list = ActivePolyList();
 
@@ -910,12 +944,25 @@ void DrawQuads(int count, void* src) {
 		beg++;
 	}
 	Vertex* end;
+	cc_bool noclip = (hints & DRAW_HINT_NOCLIP) || gfx_rendering2D;
 
 	if (gfx_format == VERTEX_FORMAT_TEXTURED) {
-		end = DrawTexturedQuads(src, beg, count >> 2);
+		// Super fast path draws directly to SQ
+		if (list == direct && noclip) {
+			if (list->length) SubmitCommands((Vertex*)list->data, list->length);
+			list->length = 0;
+
+			DrawTexturedQuads_Direct(src, MEM_AREA_SQ_BASE, count >> 2);
+			return;
+		}
+
+		end = noclip ? DrawTexturedQuads_Fast(src, beg, count >> 2) 
+					 : DrawTexturedQuads_Clip(src, beg, count >> 2);
 	} else {
-		end = DrawColouredQuads(src, beg, count >> 2);
+		end = noclip ? DrawColouredQuads_Fast(src, beg, count >> 2) 
+					 : DrawColouredQuads_Clip(src, beg, count >> 2);
 	}
+
 	list->length += (end - beg);
 
 	if (list != direct) return;
@@ -943,20 +990,20 @@ void Gfx_DrawVb_IndexedTris_Range(int verticesCount, int startVertex, DrawHints 
 		src = gfx_vertices + startVertex * SIZEOF_VERTEX_COLOURED;
 	}
 
-	DrawQuads(verticesCount, src);
+	DrawQuads(verticesCount, src, hints);
 }
 
 void Gfx_DrawVb_IndexedTris(int verticesCount) {
 	if (textureOffset) ShiftTextureCoords(verticesCount);
-	DrawQuads(verticesCount, gfx_vertices);
+	DrawQuads(verticesCount, gfx_vertices, 0);
 	if (textureOffset) UnshiftTextureCoords(verticesCount);
 }
 
-void Gfx_DrawIndexedTris_T2fC4b(int verticesCount, int startVertex) {
+void Gfx_DrawIndexedTris_T2fC4b(int verticesCount, int startVertex, DrawHints hints) {
 	if (renderingDisabled) return;
 	
 	void* src = gfx_vertices + startVertex * SIZEOF_VERTEX_TEXTURED;
-	DrawQuads(verticesCount, src);
+	DrawQuads(verticesCount, src, hints);
 }
 
 
@@ -966,15 +1013,14 @@ void Gfx_DrawIndexedTris_T2fC4b(int verticesCount, int startVertex) {
 static BitmapCol* DC_GetRow(struct Bitmap* bmp, int y, void* ctx) {
 	BitmapCol* tmp = (BitmapCol*)ctx;
 	uint16_t* src  = vram_s + vid_mode->width * y;
-	int r, g, b, width = bmp->width;
+	int width = bmp->width;
 
 	for (int x = 0; x < width; x++)
 	{
-		int r, g, b;
 		// RGB565 to RGB888
-		r = ((src[x] >> 11) & 0x1F) << 3;
-		g = ((src[x] >> 6)  & 0x3F) << 2;
-		b = ((src[x] >> 0)  & 0x1F) << 3;
+		int r = ((src[x] >> 11) & 0x1F) << 3;
+		int g = ((src[x] >>  6) & 0x3F) << 2;
+		int b = ((src[x] >>  0) & 0x1F) << 3;
 
 		tmp[x] = BitmapColor_RGB(r, g, b);
 	}

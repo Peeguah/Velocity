@@ -35,7 +35,7 @@ DEPFILES := $(OBJS:%.o=%.d)
 #---------------------------------------------------------------------------------
 # Code generation
 #---------------------------------------------------------------------------------
-CFLAGS = -O1 -fno-math-errno -Wno-builtin-macro-redefined \
+CFLAGS = -O2 -fno-math-errno -Wno-builtin-macro-redefined \
 	-I$(NXDK_DIR)/lib/net/lwip/src/include \
 	-I$(NXDK_DIR)/lib/net/nforceif/include \
 	-I$(NXDK_DIR)/lib/net/nvnetdrv \
@@ -112,8 +112,11 @@ $(BUILD_DIR)/%.o: third_party/bearssl/%.c
 	nxdk-cc $(NXDK_CFLAGS) $(CFLAGS) -c $< -o $@
 
 
-# prevent the .asm files from being deleted
+#---------------------------------------------------------------------------------
+# shader object generation
+#---------------------------------------------------------------------------------
 .PRECIOUS: vs_%.asm ps_%.asm
+# prevent the .asm files from being deleted
 
 vs_%.inl: vs_%.asm
 	$(VP20COMPILER) $< > $@
