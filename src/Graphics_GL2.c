@@ -57,7 +57,6 @@ void Gfx_Create(void) {
 	
 	GL_InitCommon();
 	GLBackend_Init();
-	Gfx_RestoreState();
 	GLContext_SetVSync(gfx_vsync);
 }
 

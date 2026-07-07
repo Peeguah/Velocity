@@ -193,7 +193,6 @@ void Gfx_Create(void) {
 	gfx_vsync        = true;
 	
 	Gfx.NonPowTwoTexturesSupport = GFX_NONPOW2_UPLOAD;
-	Gfx_RestoreState();
 }
 
 void Gfx_Free(void) {

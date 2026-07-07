@@ -68,8 +68,6 @@ void ResetGPU(void) {
 }
 
 void Gfx_Create(void) {
-	Gfx_RestoreState();
-
 	Gfx.MinTexWidth  =   8;
 	Gfx.MinTexHeight =   8;
 	Gfx.MaxTexWidth  = 256;
@@ -439,9 +437,7 @@ void Gfx_SetDepthWrite(cc_bool enabled) { }
 void Gfx_SetDepthTest(cc_bool enabled)  { }
 
 static void Gfx_FreeState(void) { FreeDefaultResources(); }
-static void Gfx_RestoreState(void) {
-	InitDefaultResources();
-}
+static void Gfx_RestoreState(void) { InitDefaultResources(); }
 
 cc_bool Gfx_WarnIfNecessary(void) { return true; }
 cc_bool Gfx_GetUIOptions(struct MenuOptionsScreen* s) { return false; }

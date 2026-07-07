@@ -45,8 +45,6 @@ void Gfx_Create(void) {
 	Gfx.Created      = true;
 	Gfx.BackendType  = CC_GFX_BACKEND_SOFTGPU;
 	Gfx.Limitations  = GFX_LIMIT_MINIMAL;
-	
-	Gfx_RestoreState();
 }
 
 static void DestroyBuffers(void) {

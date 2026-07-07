@@ -68,7 +68,7 @@ void Gfx_Create(void) {
 	Gfx.Created      = true;
 	gfx_vsync        = true;
 	
-	Gfx_RestoreState();
+	gfx_format = -1;
 }
 
 void Gfx_Free(void) { 
@@ -78,7 +78,6 @@ cc_bool Gfx_TryRestoreContext(void) { return true; }
 
 static void Gfx_RestoreState(void) { 
 	InitDefaultResources();
-	gfx_format = -1;
 
 	// 4x4 dummy white texture (textures must be at least 1 4x4 tile)
 	struct Bitmap bmp;

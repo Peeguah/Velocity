@@ -179,7 +179,6 @@ void Gfx_Create(void) {
 	Gfx.Created      = true;
 	Gfx.Limitations  = GFX_LIMIT_MAX_VERTEX_SIZE;
 	
-	Gfx_RestoreState();
 	SetupContexts(Window_Main.Width, Window_Main.Height);
 	Gfx_ClearColor(PackedCol_Make(63, 0, 127, 255));
 

@@ -46,7 +46,6 @@ void Gfx_Create(void) {
 	Gfx.MaxLowResTexSize = 2048;
 
 	Gfx.NonPowTwoTexturesSupport = GFX_NONPOW2_FULL;
-	Gfx_RestoreState();
 
 	Gfx_SetFaceCulling(false);
 	Gfx_SetViewport(0, 0, Game.Width, Game.Height);

@@ -272,7 +272,6 @@ void Gfx_Create(void) {
 	Gfx.Created      = true;
 	
 	Gfx.NonPowTwoTexturesSupport = GFX_NONPOW2_UPLOAD;
-	Gfx_RestoreState();
 }
 
 void Gfx_Free(void) { 

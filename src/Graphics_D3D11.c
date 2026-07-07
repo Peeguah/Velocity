@@ -181,7 +181,6 @@ void Gfx_Create(void) {
 	Gfx.Created         = true;
 	Gfx.BackendType     = CC_GFX_BACKEND_D3D11;
 	customMipmapsLevels = true;
-	Gfx_RestoreState();
 }
 
 void Gfx_Free(void) {

@@ -41,8 +41,6 @@ void Gfx_Create(void) {
 	Gfx.Created      = true;
 	Gfx.BackendType  = CC_GFX_BACKEND_SOFTGPU;
 	Gfx.Limitations  = GFX_LIMIT_MINIMAL | GFX_LIMIT_WORLD_ONLY;
-	
-	Gfx_RestoreState();
 }
 
 void Gfx_Free(void) { 

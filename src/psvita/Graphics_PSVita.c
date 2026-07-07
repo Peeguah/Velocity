@@ -577,7 +577,7 @@ void Gfx_Create(void) {
 	
 	Gfx_SetDepthTest(true);
 	Gfx_SetVertexFormat(VERTEX_FORMAT_COLOURED);
-	Gfx_RestoreState();
+
 	Gfx.NonPowTwoTexturesSupport = GFX_NONPOW2_UPLOAD;
 }
 
@@ -595,7 +595,6 @@ static void Gfx_RestoreState(void) {
 	BitmapCol pixels[1] = { BITMAPCOLOR_WHITE };
 	Bitmap_Init(bmp, 1, 1, pixels);
 	white_square = Gfx_CreateTexture(&bmp, 0, false);
-	// TODO
 }
 
 static void Gfx_FreeState(void) {

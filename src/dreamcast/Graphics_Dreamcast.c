@@ -149,7 +149,7 @@ void Gfx_Create(void) {
 	Gfx.Created      = true;
 	
 	Gfx.NonPowTwoTexturesSupport = GFX_NONPOW2_UPLOAD;
-	Gfx_RestoreState();
+	gfx_format = -1;
 }
 
 cc_bool Gfx_TryRestoreContext(void) {
@@ -891,10 +891,7 @@ static CC_NOINLINE void UnshiftTextureCoords(int count) {
 *-------------------------------------------------------State setup-------------------------------------------------------*
 *#########################################################################################################################*/
 static void Gfx_FreeState(void) { FreeDefaultResources(); }
-static void Gfx_RestoreState(void) {
-	InitDefaultResources();
-	gfx_format = -1;
-}
+static void Gfx_RestoreState(void) { InitDefaultResources(); }
 
 cc_bool Gfx_WarnIfNecessary(void) { return false; }
 cc_bool Gfx_GetUIOptions(struct MenuOptionsScreen* s) { return false; }

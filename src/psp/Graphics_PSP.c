@@ -113,8 +113,7 @@ void Gfx_Create(void) {
 	Gfx.NonPowTwoTexturesSupport = GFX_NONPOW2_UPLOAD;
 	Gfx.Created      = true;
 	gfx_vsync        = true;
-	
-	Gfx_RestoreState();
+
 	last_base = -1;
 	InitGuardband();
 }
