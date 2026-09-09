@@ -1,6 +1,8 @@
 #define CC_XTEA_ENCRYPTION
 #define CC_NO_UPDATER
 #define CC_NO_DYNLIB
+#define CC_NO_OPEN
+#define CC_NO_CRASHHANDLER
 #define DEFAULT_COMMANDLINE_FUNC
 
 #include "../Stream.h"
@@ -84,16 +86,6 @@ cc_uint64 Stopwatch_Measure(void) {
 	struct SceKernelTimeval cur;
 	sceKernelLibcGettimeofday(&cur, NULL);
 	return (cc_uint64)cur.sec * US_PER_SEC + cur.usec;
-}
-
-
-/*########################################################################################################################*
-*-------------------------------------------------------Crash handling----------------------------------------------------*
-*#########################################################################################################################*/
-void CrashHandler_Install(void) { }
-
-void Process_Abort2(cc_result result, const char* raw_msg) {
-	Logger_DoAbort(result, raw_msg, NULL);
 }
 
 
@@ -357,7 +349,7 @@ static cc_result ParseHost(const char* host, int port, cc_sockaddr* addrs, int* 
 cc_result Socket_Create(cc_socket* s, cc_sockaddr* addr) {
 	struct SceNetSockaddr* raw = (struct SceNetSockaddr*)addr->data;
 
-	*s = sceNetSocket("CC socket", raw->sa_family, SCE_NET_SOCK_STREAM, SCE_NET_IPPROTO_TCP);
+	*s = sceNetSocket("CC socket", raw->sa_family, SCE_NET_SOCK_STREAM, 0);
 	if (*s < 0) return *s;
 
 	return 0;
@@ -373,11 +365,8 @@ void Socket_Close(cc_socket s) {
 	sceNetSocketClose(s);
 }
 
-cc_result Socket_Connect(cc_socket s, cc_sockaddr* addr) {
-	struct SceNetSockaddr* raw = (struct SceNetSockaddr*)addr->data;
-	
-	int res = sceNetConnect(s, raw, addr->size);
-	return res;
+cc_result Socket_Connect(cc_socket s, const void* addr, int addrSize) {
+	return sceNetConnect(s, (struct SceNetSockaddr*)addr, addrSize);
 }
 
 cc_result Socket_Read(cc_socket s, cc_uint8* data, cc_uint32 count, cc_uint32* modified) {
@@ -460,11 +449,6 @@ cc_bool Platform_DescribeError(cc_result res, cc_string* dst) {
 	return true;
 }
 
-cc_bool Process_OpenSupported = false;
-cc_result Process_StartOpen(const cc_string* args) {
-	return ERR_NOT_SUPPORTED;
-}
-
 void Process_Exit(cc_result code) { exit(code); }
 
 cc_result Process_StartGame2(const cc_string* args, int numArgs) {
@@ -472,9 +456,7 @@ cc_result Process_StartGame2(const cc_string* args, int numArgs) {
 	return SetGameArgs(args, numArgs);
 }
 
-cc_result Platform_SetDefaultCurrentDirectory(int argc, char **argv) {
-	return 0;
-}
+cc_result Platform_SetDefaultCurrentDirectory(void) { return 0; }
 
 
 /*########################################################################################################################*

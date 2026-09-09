@@ -1271,14 +1271,14 @@ release_device:
 	IDXGIDevice_Release(dxgi_device);
 }
 
-void Gfx_OnWindowResize(void) {
+void Gfx_OnWindowResize(int width, int height) {
 	// https://docs.microsoft.com/en-us/windows/win32/direct3ddxgi/d3d10-graphics-programming-guide-dxgi#handling-window-resizing
 	OM_FreeTargets();
 	HRESULT hr = IDXGISwapChain_ResizeBuffers(swapchain, 0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
 	if (hr) Process_Abort2(hr, "Failed to resize swapchain");
 
 	OM_InitTargets();
-	Gfx_SetViewport(0, 0, Game.Width, Game.Height);
+	Gfx_SetViewport(0, 0, width, height);
 }
 
 static void InitPipeline(void) {

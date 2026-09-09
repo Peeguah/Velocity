@@ -1,14 +1,11 @@
-#include "Core.h"
-#if CC_WIN_BACKEND == CC_WIN_BACKEND_BEOS
-
 extern "C" {
-#include "_WindowBase.h"
-#include "Graphics.h"
-#include "String_.h"
-#include "Funcs.h"
-#include "Bitmap.h"
-#include "Errors.h"
-#include "Utils.h"
+#include "../_WindowBase.h"
+#include "../Graphics.h"
+#include "../String_.h"
+#include "../Funcs.h"
+#include "../Bitmap.h"
+#include "../Errors.h"
+#include "../Utils.h"
 }
 // Other
 #include <errno.h>
@@ -749,4 +746,3 @@ void GLContext_SetVSync(cc_bool vsync) {
 void GLContext_GetApiInfo(cc_string* info) { }
 #endif // CC_GFX_BACKEND_IS_GL() && !CC_BUILD_EGL
 
-#endif

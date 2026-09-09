@@ -2,6 +2,8 @@
 #define CC_NO_DYNLIB
 #define CC_NO_SOCKETS
 #define CC_NO_THREADING
+#define CC_NO_OPEN
+#define CC_NO_CRASHHANDLER
 #define OVERRIDE_MEM_FUNCTIONS
 
 #include "../Stream.h"
@@ -152,16 +154,6 @@ void DateTime_CurrentLocal(struct cc_datetime* t) {
 	t->hour   = loc_time.tm_hour;
 	t->minute = loc_time.tm_min;
 	t->second = loc_time.tm_sec;
-}
-
-
-/*########################################################################################################################*
-*-------------------------------------------------------Crash handling----------------------------------------------------*
-*#########################################################################################################################*/
-void CrashHandler_Install(void) { }
-
-void Process_Abort2(cc_result result, const char* raw_msg) {
-	Logger_DoAbort(result, raw_msg, NULL);
 }
 
 
@@ -372,15 +364,11 @@ void Thread_Sleep(cc_uint32 milliseconds) {
 /*########################################################################################################################*
 *-----------------------------------------------------Process/Module------------------------------------------------------*
 *#########################################################################################################################*/
-cc_bool Process_OpenSupported = false;
-
 int Platform_GetCommandLineArgs(int argc, STRING_REF char** argv, cc_string* args) {
 	return GetGameArgs(args);
 }
 
-cc_result Platform_SetDefaultCurrentDirectory(int argc, char **argv) {
-	return 0;
-}
+cc_result Platform_SetDefaultCurrentDirectory(void) { return 0; }
 
 cc_result Process_StartGame2(const cc_string* args, int numArgs) {
 	return SetGameArgs(args, numArgs);
@@ -389,10 +377,6 @@ cc_result Process_StartGame2(const cc_string* args, int numArgs) {
 void Process_Exit(cc_result code) { 
 	ExitToShell();
     for(;;) { }
-}
-
-cc_result Process_StartOpen(const cc_string* args) {
-	return ERR_NOT_SUPPORTED;
 }
 
 

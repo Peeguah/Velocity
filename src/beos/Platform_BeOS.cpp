@@ -1,10 +1,8 @@
-#include "Core.h"
-#if defined CC_BUILD_BEOS || defined CC_BUILD_HAIKU
 extern "C" {
-#include "Platform.h"
-#include "String_.h"
-#include "Funcs.h"
-#include "Utils.h"
+#include "../Platform.h"
+#include "../String_.h"
+#include "../Funcs.h"
+#include "../Utils.h"
 }
 #include <errno.h>
 #include <OS.h>
@@ -114,4 +112,4 @@ void Waitable_WaitFor(void* handle, cc_uint32 milliseconds) {
 	acquire_sem_etc(id, 1, B_RELATIVE_TIMEOUT, microseconds);
 }
 #endif
-#endif
+

@@ -224,6 +224,9 @@ void CrashHandler_Install(void) {
 	SetUnhandledExceptionFilter(UnhandledFilter);
 }
 
+// TODO move into Platform file
+#include "win32/Plat_Win32.inc"
+
 #if __clang__
 void __attribute__((optnone)) Process_Abort2(cc_result result, const char* raw_msg) {
 #elif __GNUC__
@@ -697,10 +700,8 @@ void Socket_Close(cc_socket s) {
 	_closesocket(s);
 }
 
-cc_result Socket_Connect(cc_socket s, cc_sockaddr* addr) {
-	SOCKADDR* raw_addr = (SOCKADDR*)addr->data;
-
-	int res = _connect(s, raw_addr, addr->size);
+cc_result Socket_Connect(cc_socket s, const void* addr, int addrSize) {
+	int res = _connect(s, (SOCKADDR*)addr, addrSize);
 	return res == -1 ? _WSAGetLastError() : 0;
 }
 
@@ -719,10 +720,10 @@ cc_result Socket_Write(cc_socket s, const cc_uint8* data, cc_uint32 count, cc_ui
 cc_result Socket_Poll(cc_socket s, int timeoutMS, int mode, cc_bool* success) {
 	fd_set set1, set2;
 	int selectCount;
-	struct timeval time = {
-		timeoutMS / 1000,          /* seconds */
-		(timeoutMS % 1000) * 1000, /* microseconds */
-	};
+	struct timeval time;
+	
+	time.tv_sec  = timeoutMS / 1000;          /* seconds */
+	time.tv_usec = (timeoutMS % 1000) * 1000; /* microseconds */
 
 	set1.fd_count    = 1; set2.fd_count    = 1;
 	set1.fd_array[0] = s; set2.fd_array[0] = s;
@@ -1191,7 +1192,7 @@ static cc_bool IsProblematicWorkingDirectory(void) {
 	return false;
 }
 
-cc_result Platform_SetDefaultCurrentDirectory(int argc, char** argv) {
+cc_result Platform_SetDefaultCurrentDirectory(void) {
 	cc_winstring path;
 	int i, len;
 	cc_result res;

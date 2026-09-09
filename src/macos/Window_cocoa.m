@@ -1,17 +1,42 @@
 // Silence deprecation warnings on modern macOS
 #define GL_SILENCE_DEPRECATION
 
-#include "Core.h"
+#include "../Core.h"
 #if CC_WIN_BACKEND == CC_WIN_BACKEND_COCOA
-#include "_WindowBase.h"
-#include "ExtMath.h"
-#include "Funcs.h"
-#include "Bitmap.h"
-#include "String_.h"
-#include "Options.h"
+#include "../_WindowBase.h"
+#include "../ExtMath.h"
+#include "../Funcs.h"
+#include "../Bitmap.h"
+#include "../String_.h"
+#include "../Options.h"
 #import  <Foundation/Foundation.h>
 #import  <AppKit/AppKit.h>
 #include <ApplicationServices/ApplicationServices.h>
+
+#define _NSOKButton 1
+
+#define _NSLeftMouseDown      1
+#define _NSLeftMouseUp        2
+#define _NSRightMouseDown     3
+#define _NSRightMouseUp       4
+#define _NSMouseMoved         5
+#define _NSLeftMouseDragged   6
+#define _NSRightMouseDragged  7
+#define _NSMouseEntered       8
+#define _NSMouseExited		  9
+#define _NSKeyDown           10
+#define _NSKeyUp             11
+#define _NSFlagsChanged	     12
+#define _NSScrollWheel       22
+#define _NSOtherMouseDown    25
+#define _NSOtherMouseUp      26
+#define _NSOtherMouseDragged 27
+
+// NOTE: Only defined since macOS 10.9 SDK
+#define _NSWindowOcclusionStateVisible (1 << 1)
+
+// NOTE: Only defined since macOS 10.7 SDK
+#define _NSFullScreenWindowMask (1 << 14)
 
 static int windowX, windowY;
 static NSApplication* appHandle;
@@ -20,35 +45,15 @@ static NSView* viewHandle;
 static cc_bool canCheckOcclusion;
 static cc_bool legacy_fullscreen;
 static cc_bool scroll_debugging;
-static NSObject<NSApplicationDelegate>* appDelegate;
-
-@interface CCAppDelegate : NSObject <NSApplicationDelegate>
-@end
-
-@implementation CCAppDelegate
-
-- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender {
-    Window_RequestClose();
-    return NSTerminateCancel;
-}
-
-- (BOOL)applicationShouldHandleReopen:(NSApplication *)app hasVisibleWindows:(BOOL)flag {
-    if (winHandle) [winHandle makeKeyAndOrderFront:nil];
-    return YES;
-}
-
-@end
 
 #if defined MAC_OS_X_VERSION_10_12 && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_12
 	#define WIN_MASK (NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable | NSWindowStyleMaskMiniaturizable)
 	#define ANY_EVENT_MASK NSEventMaskAny
-	#define DIALOG_OK      NSModalResponseOK
 	
 	#define PASTEBOARD_STRING_TYPE NSPasteboardTypeString
 #else
 	#define WIN_MASK (NSTitledWindowMask | NSClosableWindowMask | NSResizableWindowMask | NSMiniaturizableWindowMask)
 	#define ANY_EVENT_MASK NSAnyEventMask
-	#define DIALOG_OK      NSOKButton
 	
 	#define PASTEBOARD_STRING_TYPE NSStringPboardType
 #endif
@@ -204,26 +209,6 @@ void Window_PreInit(void) {
 	DisplayInfo.CursorVisible = true;
 }
 
-static void CreateMenuBar(void) {
-    NSMenu* bar = [[NSMenu alloc] init];
-    NSMenuItem* appItem = [[NSMenuItem alloc] init];
-    [bar addItem:appItem];
-    [NSApp setMainMenu:bar];
-
-    NSMenu* appMenu = [[NSMenu alloc] init];
-    NSString* name = [[NSProcessInfo processInfo] processName];
-    NSString* quitTitle = [@"Quit " stringByAppendingString:name];
-
-    NSMenuItem* quit = [[NSMenuItem alloc]
-        initWithTitle:quitTitle
-               action:@selector(terminate:)
-        keyEquivalent:@"q"];
-
-    [appMenu addItem:quit];
-    [appItem setSubmenu:appMenu];
-}
-
-
 static NSAutoreleasePool* pool;
 void Window_Init(void) {
 	Input.Sources = INPUT_SOURCE_NORMAL;
@@ -231,10 +216,6 @@ void Window_Init(void) {
 	// https://www.cocoawithlove.com/2009/01/demystifying-nsapplication-by.html
 	pool = [[NSAutoreleasePool alloc] init];
 	appHandle = [NSApplication sharedApplication];
-	[appHandle finishLaunching];
-	appDelegate = [CCAppDelegate new];
-	[appHandle setDelegate:appDelegate];
-	CreateMenuBar(); 
 	[appHandle activateIgnoringOtherApps:YES];
 
 	CGDirectDisplayID display = CGMainDisplayID();
@@ -367,15 +348,11 @@ static void MakeContentView(void) {
 
 	viewHandle = [CCView alloc];
 	[viewHandle initWithFrame:rect];
-	[viewHandle setWantsLayer:YES];
-	if ([viewHandle respondsToSelector:@selector(setWantsBestResolutionOpenGLSurface:)]) {
-    [viewHandle setWantsBestResolutionOpenGLSurface:YES];
-}
 	[winHandle setContentView:viewHandle];
 }
 
 // See misc/macOS/mac_icon_gen.cs for how to generate this file
-#include "../misc/macOS/CCIcon_mac.h"
+#include "../../misc/macOS/CCIcon_mac.h"
 
 static void ApplyIcon(void) {
 	NSImage* img;
@@ -422,8 +399,8 @@ static void DoCreateWindow(int width, int height) {
 
 	scroll_debugging = Options_GetBool("scroll-debug", false);
 	// for quit buttons in dock and menubar
-	// AEInstallEventHandler(kCoreEventClass, kAEQuitApplication,
-	// 	NewAEEventHandlerUPP(HandleQuitMessage), 0, false);
+	AEInstallEventHandler(kCoreEventClass, kAEQuitApplication,
+		NewAEEventHandlerUPP(HandleQuitMessage), 0, false);
 	
 	Window_Main.Exists     = true;
 	Window_Main.Handle.ptr = winHandle;
@@ -432,17 +409,15 @@ static void DoCreateWindow(int width, int height) {
 	// CGAssociateMouseAndMouseCursorPosition implicitly grabs cursor
 
 	del = [CCWindowDelegate alloc];
+#if defined MAC_OS_X_VERSION_10_6 && (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
 	[winHandle setDelegate:(id<NSWindowDelegate>)del];
+#else
+	[winHandle setDelegate:del];
+#endif
+	
 	RefreshWindowBounds();
 	MakeContentView();
 	ApplyIcon();
-
-	if ([winHandle respondsToSelector:@selector(backingScaleFactor)]) {
-    	CGFloat scale = [winHandle backingScaleFactor];
-    	DisplayInfo.ScaleX = scale;
-    	DisplayInfo.ScaleY = scale;
-	}
-
 
 	canCheckOcclusion = [winHandle respondsToSelector:@selector(occlusionState)];
 }
@@ -460,8 +435,6 @@ void Window_SetTitle(const cc_string* title) {
 	[winHandle setTitle:str];
 }
 
-// NOTE: Only defined since macOS 10.7 SDK
-#define _NSFullScreenWindowMask (1 << 14)
 int Window_GetWindowState(void) {
 	int flags;
 
@@ -476,15 +449,15 @@ int Window_GetWindowState(void) {
 	return flags ? WINDOW_STATE_MINIMISED : WINDOW_STATE_NORMAL;
 }
 
-// NOTE: Only defined since macOS 10.9 SDK
-#define _NSWindowOcclusionStateVisible (1 << 1)
 int Window_IsObscured(void) {
     if (!canCheckOcclusion)
         return [winHandle isMiniaturized];
     
     // covers both minimised and hidden behind another window
-    int flags = [winHandle occlusionState];
+    cc_uintptr flags = (cc_uintptr)[winHandle performSelector:@selector(occlusionState)];
     return !(flags & _NSWindowOcclusionStateVisible);
+    //int flags = (int)[winHandle occlusionState];
+    //return !(flags & _NSWindowOcclusionStateVisible);
 }
 
 void Window_Show(void) { 
@@ -527,6 +500,7 @@ static int MapNativeMouse(long button) {
 }
 
 static void ProcessKeyChars(id ev) {
+	const cc_uint8* buf;
 	const char* src;
 	cc_codepoint cp;
 	NSString* chars;
@@ -541,13 +515,14 @@ static void ProcessKeyChars(id ev) {
 	chars = [ev characters];
 	src   = [chars UTF8String];
 	len   = String_Length(src);
+	buf   = (const cc_uint8*)src;
 
 	while (len > 0) {
-		i = Convert_Utf8ToCodepoint(&cp, (const cc_uint8*)src, len);
+		i = Convert_Utf8ToCodepoint(&cp, buf, len);
 		if (!i) break;
 
 		Event_RaiseInt(&InputEvents.Press, cp);
-		src += i; len -= i;
+		buf += i; len -= i;
 	}
 }
 
@@ -588,33 +563,33 @@ void Window_ProcessEvents(float delta) {
 		type = [ev type];
 
 		switch (type) {
-		case  1: // NSLeftMouseDown 
-		case  3: // NSRightMouseDown
-		case 25: // NSOtherMouseDown
+		case _NSLeftMouseDown:
+		case _NSRightMouseDown:
+		case _NSOtherMouseDown:
 			key = MapNativeMouse([ev buttonNumber]);
 			if (GetMouseCoords(&x, &y) && key) Input_SetPressed(key);
 			break;
 
-		case  2: // NSLeftMouseUp 
-		case  4: // NSRightMouseUp
-		case 26: // NSOtherMouseUp
+		case _NSLeftMouseUp:
+		case _NSRightMouseUp:
+		case _NSOtherMouseUp:
 			key = MapNativeMouse([ev buttonNumber]);
 			if (key) Input_SetReleased(key);
 			break;
 
-		case 10: // NSKeyDown
+		case _NSKeyDown:
 			key = TryGetKey(ev);
 			if (key) Input_SetPressed(key);
 			// TODO: Test works properly with other languages
 			ProcessKeyChars(ev);
 			break;
 
-		case 11: // NSKeyUp
+		case _NSKeyUp:
 			key = TryGetKey(ev);
 			if (key) Input_SetReleased(key);
 			break;
 
-		case 12: // NSFlagsChanged
+		case _NSFlagsChanged:
 			key = [ev modifierFlags];
 			// TODO: Figure out how to only get modifiers that changed
 			Input_Set(CCKEY_LCTRL,    key & 0x000001);
@@ -628,7 +603,7 @@ void Window_ProcessEvents(float delta) {
 			Input_Set(CCKEY_CAPSLOCK, key & 0x010000);
 			break;
 
-		case 22: // NSScrollWheel
+		case _NSScrollWheel:
 			if (scroll_debugging) DebugScrollEvent(ev);
 			dx    = [ev deltaX];
 			dy    = [ev deltaY];
@@ -645,10 +620,10 @@ void Window_ProcessEvents(float delta) {
 			Mouse_ScrollVWheel(steps);
 			break;
 
-		case  5: // NSMouseMoved
-		case  6: // NSLeftMouseDragged
-		case  7: // NSRightMouseDragged
-		case 27: // NSOtherMouseDragged
+		case _NSMouseMoved:
+		case _NSLeftMouseDragged:
+		case _NSRightMouseDragged:
+		case _NSOtherMouseDragged:
 			if (GetMouseCoords(&x, &y)) Pointer_SetPosition(0, x, y);
 
 			if (Input.RawMode) ProcessRawMouseMovement(ev);
@@ -670,22 +645,21 @@ void Gamepads_Process(float delta) { }
 *-----------------------------------------------------------Dialogs-------------------------------------------------------*
 *#########################################################################################################################*/
 void ShowDialogCore(const char* title, const char* msg) {
-	CFStringRef titleCF, msgCF;
+	NSString* ttlStr;
+	NSString* msgStr;
 	NSAlert* alert;
 	
-	titleCF = CFStringCreateWithCString(NULL, title, kCFStringEncodingASCII);
-	msgCF   = CFStringCreateWithCString(NULL, msg,   kCFStringEncodingASCII);
+	ttlStr = [NSString stringWithCString:title];
+	msgStr = [NSString stringWithCString:msg];
 	
 	alert = [NSAlert alloc];
 	alert = [alert init];
 	
-	[alert setMessageText:(__bridge NSString *)titleCF];
-	[alert setInformativeText:(__bridge NSString *)msgCF];
+	[alert setMessageText: ttlStr];
+	[alert setInformativeText: msgStr];
 	[alert addButtonWithTitle: @"OK"];
 	
 	[alert runModal];
-	CFRelease(titleCF);
-	CFRelease(msgCF);
 }
 
 static NSMutableArray* GetOpenSaveFilters(const char* const* filters) {
@@ -723,7 +697,7 @@ cc_result Window_SaveFileDialog(const struct SaveFileDialogArgs* args) {
 
     NSMutableArray* types = GetOpenSaveFilters(args->filters);
     [dlg setAllowedFileTypes:types];
-	if ([dlg runModal] != DIALOG_OK) return 0;
+	if ([dlg runModal] != _NSOKButton) return 0;
 
 	NSURL* file = [dlg URL];
     if (file) OpenSaveDoCallback(file, args->Callback);
@@ -735,11 +709,11 @@ cc_result Window_OpenFileDialog(const struct OpenFileDialogArgs* args) {
     
     NSMutableArray* types = GetOpenSaveFilters(args->filters);
     [dlg setCanChooseFiles: YES];
-    if ([dlg runModalForTypes:types] != DIALOG_OK) return 0;
+    if ([dlg runModalForTypes:types] != _NSOKButton) return 0;
     // unfortunately below code doesn't work when linked against SDK < 10.6
     //   https://developer.apple.com/documentation/appkit/nssavepanel/1534419-allowedfiletypes
     // [dlg setAllowedFileTypes:types];
-    // if ([dlg runModal] != DIALOG_OK) return 0;
+    // if ([dlg runModal] != _NSOKButton) return 0;
     
     NSArray* files = [dlg URLs];
     if ([files count] < 1) return 0;
@@ -825,10 +799,26 @@ void OnscreenKeyboard_Close(void) { }
 static NSOpenGLContext* ctxHandle;
 #include <OpenGL/OpenGL.h>
 
-// SDKs < macOS 10.7 do not have this defined
-#ifndef kCGLRPVideoMemoryMegabytes
-#define kCGLRPVideoMemoryMegabytes 131
+// TODO kCGLCPCurrentRendererID is only available on macOS 10.4 and later
+// so the gpu info query won't work below 10.4. maybe retrieve rendererID from a CGLPixelFormatObj there?
+#define _kCGLCPCurrentRendererID 309
+
+
+#define _kCGLRPRendererID             70
+#define _kCGLRPAccelerated            73
+// SDKs < macOS 10.7 do not have kCGLRPVideoMemoryMegabytes defined
+#define _kCGLRPVideoMemory           120
+#define _kCGLRPVideoMemoryMegabytes  131
+#define _kCGLCPGPUVertexProcessing   310
+#define _kCGLCPGPUFragmentProcessing 311
+
+// Before 10.5 uses long instead of glInt and didn't include the normal gl.h with typedefs
+#if defined MAC_OS_X_VERSION_10_4 && MAC_OS_X_VERSION_MAX_ALLOWED <= MAC_OS_X_VERSION_10_4
+typedef long  GLinteger;
+#else
+typedef GLint GLinteger;
 #endif
+
 
 static int SupportsModernFullscreen(void) {
 	return [winHandle respondsToSelector:@selector(toggleFullScreen:)];
@@ -844,7 +834,7 @@ static NSOpenGLPixelFormat* InitPixelFormat(cc_bool fullscreen) {
 		NSOpenGLPFADepthSize,    24,
 		NSOpenGLPFADoubleBuffer,
 		fullscreen ? NSOpenGLPFAFullScreen : 0,
-		// TODO do we have to mask to main display? or can we just use -1 for all displays?
+		// TODO: do we have to mask to main display? or can we just use -1 for all displays?
 		NSOpenGLPFAScreenMask,   CGDisplayIDToOpenGLDisplayMask(CGMainDisplayID()),
 		0
 	};
@@ -898,21 +888,16 @@ cc_bool GLContext_SwapBuffers(void) {
 }
 
 void GLContext_SetVSync(cc_bool vsync) {
-	int value = vsync ? 1 : 0;
+	GLinteger value = vsync ? 1 : 0;
 	[ctxHandle setValues:&value forParameter: NSOpenGLCPSwapInterval];
 }
-
-// kCGLCPCurrentRendererID is only available on macOS 10.4 and later
-// Before 10.5 uses long instead of glInt and didn't include the normal gl.h with typedefs
-#if defined MAC_OS_X_VERSION_10_4
-typedef int GLinteger;
 
 static const char* GetAccelerationMode(CGLContextObj ctx) {
 	GLinteger fGPU, vGPU;
 	
 	// NOTE: only macOS 10.4 or later
-	if (CGLGetParameter(ctx, kCGLCPGPUFragmentProcessing, &fGPU)) return NULL;
-	if (CGLGetParameter(ctx, kCGLCPGPUVertexProcessing,   &vGPU)) return NULL;
+	if (CGLGetParameter(ctx, _kCGLCPGPUFragmentProcessing, &fGPU) != 0) return NULL;
+	if (CGLGetParameter(ctx, _kCGLCPGPUVertexProcessing,   &vGPU) != 0) return NULL;
 	
 	if (fGPU && vGPU) return "Fully";
 	if (fGPU || vGPU) return "Partially";
@@ -921,31 +906,31 @@ static const char* GetAccelerationMode(CGLContextObj ctx) {
 
 void GLContext_GetApiInfo(cc_string* info) {
 	CGLContextObj ctx = [ctxHandle CGLContextObj];
-	GLinteger rendererID;
-	CGLGetParameter(ctx, kCGLCPCurrentRendererID, &rendererID);
+	GLinteger rendererID = -1;
+	if (CGLGetParameter(ctx, _kCGLCPCurrentRendererID, &rendererID) != 0) return;
 	
 	GLinteger nRenders = 0;
 	CGLRendererInfoObj rend;
-	CGLQueryRendererInfo(-1, &rend, &nRenders);
+	if (CGLQueryRendererInfo(-1, &rend, &nRenders) != 0) return;
 	int i;
 	
 	for (i = 0; i < nRenders; i++)
 	{
 		GLinteger curID = -1;
-		CGLDescribeRenderer(rend, i, kCGLRPRendererID, &curID);
+		CGLDescribeRenderer(rend, i, _kCGLRPRendererID, &curID);
 		if (curID != rendererID) continue;
 		
 		GLinteger acc = 0;
-		CGLDescribeRenderer(rend, i, kCGLRPAccelerated, &acc);
+		CGLDescribeRenderer(rend, i, _kCGLRPAccelerated, &acc);
 		const char* mode = GetAccelerationMode(ctx);
 		
 		GLinteger vram = 0;
-		if (!CGLDescribeRenderer(rend, i, kCGLRPVideoMemoryMegabytes, &vram)) {
+		if (CGLDescribeRenderer(rend, i, _kCGLRPVideoMemoryMegabytes, &vram) == 0) {
 			// preferred path (macOS 10.7 or later)
-		} else if (!CGLDescribeRenderer(rend, i, kCGLRPVideoMemory, &vram)) {
+		} else if (CGLDescribeRenderer(rend, i, _kCGLRPVideoMemory, &vram) == 0) {
 			vram /= (1024 * 1024); // TODO: use float instead?
 		} else {
-			vram = -1; // TODO show a better error?
+			vram = -1; // TODO: show a better error?
 		}
 		
 		if (mode && acc) {
@@ -958,16 +943,11 @@ void GLContext_GetApiInfo(cc_string* info) {
 	}
 	CGLDestroyRendererInfo(rend);
 }
-#else
-// macOS 10.3 and earlier case
-void GLContext_GetApiInfo(cc_string* info) {
-	// TODO: retrieve rendererID from a CGLPixelFormatObj, but this isn't all that important
-}
-#endif
 
 cc_result Window_EnterFullscreen(void) {
 	if (SupportsModernFullscreen()) {
-		[winHandle toggleFullScreen:appHandle];
+		//[winHandle toggleFullScreen:appHandle];
+        [winHandle performSelector:@selector(toggleFullScreen:) withObject:appHandle];
 		return 0;
 	}
 
@@ -1005,7 +985,8 @@ cc_result Window_EnterFullscreen(void) {
 
 cc_result Window_ExitFullscreen(void) {
 	if (SupportsModernFullscreen()) {
-		[winHandle toggleFullScreen:appHandle];
+		//[winHandle toggleFullScreen:appHandle];
+        [winHandle performSelector:@selector(toggleFullScreen:) withObject:appHandle];
 		return 0;
 	}
 

@@ -464,7 +464,7 @@ void Gfx_GetApiInfo(cc_string* info);
 
 /* Updates state when the window's dimensions have changed */
 /* NOTE: This may require recreating the context depending on the backend */
-void Gfx_OnWindowResize(void);
+void Gfx_OnWindowResize(int width, int height);
 
 /* Anaglyph 3D rendering support */
 void Gfx_Set3DLeft( struct Matrix* proj, struct Matrix* view);

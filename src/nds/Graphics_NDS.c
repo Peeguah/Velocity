@@ -115,7 +115,7 @@ void Gfx_SetVSync(cc_bool vsync) {
 	gfx_vsync = vsync;
 }
 
-void Gfx_OnWindowResize(void) { 
+void Gfx_OnWindowResize(int width, int height) { 
 }
 
 void Gfx_SetViewport(int x, int y, int w, int h) {

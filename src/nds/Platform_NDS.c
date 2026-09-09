@@ -1,5 +1,6 @@
 #define CC_NO_UPDATER
 #define CC_NO_DYNLIB
+#define CC_NO_OPEN
 #ifdef NDS_NONET
 	#define CC_NO_SOCKETS
 #endif
@@ -270,6 +271,10 @@ static void CrashHandler(void) {
 
 void CrashHandler_Install(void) { 
 	setExceptionHandler(CrashHandler);
+}
+
+void CrashHandler_DumpRegisters(void* ctx, cc_string* str) {
+	// TODO Register dumping not implemented
 }
 
 // __attribute__ ((target("arm"))) 
@@ -594,10 +599,8 @@ void Socket_Close(cc_socket s) {
 	closesocket(s);
 }
 
-cc_result Socket_Connect(cc_socket s, cc_sockaddr* addr) {
-	struct sockaddr* raw = (struct sockaddr*)addr->data;
-
-	int res = connect(s, raw, addr->size);
+cc_result Socket_Connect(cc_socket s, const void* addr, int addrSize) {
+	int res = connect(s, (struct sockaddr*)addr, addrSize);
 	return res < 0 ? errno : 0;
 }
 
@@ -725,11 +728,6 @@ cc_bool Platform_DescribeError(cc_result res, cc_string* dst) {
 	return true;
 }
 
-cc_bool Process_OpenSupported = false;
-cc_result Process_StartOpen(const cc_string* args) {
-	return ERR_NOT_SUPPORTED;
-}
-
 void Process_Exit(cc_result code) { exit(code); }
 
 cc_result Process_StartGame2(const cc_string* args, int numArgs) {
@@ -737,9 +735,7 @@ cc_result Process_StartGame2(const cc_string* args, int numArgs) {
 	return SetGameArgs(args, numArgs);
 }
 
-cc_result Platform_SetDefaultCurrentDirectory(int argc, char **argv) {
-	return 0;
-}
+cc_result Platform_SetDefaultCurrentDirectory(void) { return 0; }
 
 void CPU_FlushDataCache(void* start, int length) {
 	DC_FlushRange(start, length);

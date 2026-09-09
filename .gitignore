@@ -44,10 +44,6 @@ cd/
 build-360/
 main.exe
 main.lib
-misc/xbox/ps_coloured.inl
-misc/xbox/ps_textured.inl
-misc/xbox/vs_coloured.inl
-misc/xbox/vs_textured.inl
 
 # Sony console build results
 EBOOT.PBP
@@ -229,5 +225,7 @@ UpgradeLog*.htm
 .cproject
 .project
 
+# Watcom
+*.err
 cef/
 .idea/

@@ -420,8 +420,8 @@ void Gfx_EndFrame(void) {
 	if (!GLContext_SwapBuffers()) Gfx_LoseContext("GLContext lost");
 }
 
-void Gfx_OnWindowResize(void) {
-	Gfx_SetViewport(0, 0, Game.Width, Game.Height);
+void Gfx_OnWindowResize(int width, int height) {
+	Gfx_SetViewport(0, 0, width, height);
 	/* With cocoa backend, in some cases [NSOpenGLContext update] will actually */
 	/*  call glViewport with the size of the window framebuffer */
 	/*  https://github.com/glfw/glfw/issues/80 */
@@ -433,7 +433,7 @@ void Gfx_OnWindowResize(void) {
 }
 
 void Gfx_SetViewport(int x, int y, int w, int h) {
-	_glViewport(x, y, w, h);
+	_glViewport(x, Game.Height - h - y, w, h);
 }
 
 void Gfx_SetScissor(int x, int y, int w, int h) {

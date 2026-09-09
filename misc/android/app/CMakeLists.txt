@@ -131,8 +131,6 @@ add_library(classicube SHARED
         ../../third_party/bearssl/dec32le.c
         ../../third_party/bearssl/dec64be.c
         ../../third_party/bearssl/dec64le.c
-        ../../third_party/bearssl/dig_oid.c
-        ../../third_party/bearssl/dig_size.c
         ../../third_party/bearssl/ec_all_m31.c
         ../../third_party/bearssl/ec_c25519_i31.c
         ../../third_party/bearssl/ec_c25519_m31.c
@@ -186,7 +184,6 @@ add_library(classicube SHARED
         ../../third_party/bearssl/i32_div32.c
         ../../third_party/bearssl/i62_modpow2.c
         ../../third_party/bearssl/md5.c
-        ../../third_party/bearssl/md5sha1.c
         ../../third_party/bearssl/multihash.c
         ../../third_party/bearssl/poly1305_ctmul.c
         ../../third_party/bearssl/poly1305_ctmulq.c

@@ -84,7 +84,7 @@ static CC_INLINE void VirtualCursor_Update(int x, int y, float delta) {
 	VirtualCursor_SetPosition(Pointers[0].x + x, Pointers[0].y + y);
 	
 	if (!Input.RawMode) return;
-	scale = (delta * 60.0) / 2.0f;
+	scale = (delta * 60.0f) / 2.0f;
 	
 	Event_RaiseRawMove(&PointerEvents.RawMoved, 
 				x * scale, y * scale);

@@ -12,6 +12,9 @@
 #include <sys/time.h>
 #include <emscripten.h>
 
+#define CC_NO_ENCRYPTION
+#define CC_NO_CRASHHANDLER
+
 #define O_RDONLY 0x000
 #define O_WRONLY 0x001
 #define O_RDWR   0x002
@@ -69,16 +72,6 @@ TimeMS DateTime_CurrentUTC(void) {
 extern void interop_GetLocalTime(struct cc_datetime* t);
 void DateTime_CurrentLocal(struct cc_datetime* t) {
 	interop_GetLocalTime(t);
-}
-
-
-/*########################################################################################################################*
-*-------------------------------------------------------Crash handling----------------------------------------------------*
-*#########################################################################################################################*/
-void CrashHandler_Install(void) { }
-
-void Process_Abort2(cc_result result, const char* raw_msg) {
-	Logger_DoAbort(result, raw_msg, NULL);
 }
 
 
@@ -285,10 +278,10 @@ void Socket_Close(cc_socket s) {
 }
 
 extern int interop_SocketConnect(int sock, const cc_uint8* host, int port);
-cc_result Socket_Connect(cc_socket s, cc_sockaddr* addr) {
+cc_result Socket_Connect(cc_socket s, const void* addr, int addrSize) {
 	/* size is used to store port number instead */
 	/* returned result is negative for error */
-	int res = -interop_SocketConnect(s, addr->data, addr->size);
+	int res = -interop_SocketConnect(s, addr, addrSize);
 
 	/* error returned when invalid address provided */
 	if (res == _EHOSTUNREACH) return ERR_INVALID_ARGUMENT;
@@ -396,21 +389,7 @@ void Platform_Init(void) {
 }
 void Platform_Free(void) { }
 
-cc_result Platform_SetDefaultCurrentDirectory(int argc, char** argv) { return 0; }
-
-
-/*########################################################################################################################*
-*-------------------------------------------------------Encryption--------------------------------------------------------*
-*#########################################################################################################################*/
-cc_result Platform_Encrypt(const void* data, int len, cc_string* dst) { 
-	return ERR_NOT_SUPPORTED; 
-}
-cc_result Platform_Decrypt(const void* data, int len, cc_string* dst) { 
-	return ERR_NOT_SUPPORTED; 
-}
-cc_result Platform_GetEntropy(void* data, int len) {
-	return ERR_NOT_SUPPORTED;
-}
+cc_result Platform_SetDefaultCurrentDirectory(void) { return 0; }
 
 
 /*########################################################################################################################*

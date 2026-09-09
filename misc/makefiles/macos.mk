@@ -1,23 +1,36 @@
-#-----------------------------
-# Configurable flags and names
-#-----------------------------
-SOURCE_DIRS := src third_party/bearssl
+SOURCE_DIRS := src src/macos third_party/bearssl
 BUILD_DIR	:= build/macos
+TARGET 		:= ClassiCube
+DIST_NAME	:= ClassiCube
 
-CFLAGS	:= -fvisibility=hidden -fno-ident
+CFLAGS	:= -fvisibility=hidden -fno-ident -Wno-error=deprecated-declarations
 LDFLAGS	:= -rdynamic
 LIBS 	:= -framework Security -framework Cocoa -framework OpenGL -framework IOKit -lobjc
 include misc/makefiles/common_config.mk
 
 
-OBJECTS := $(BUILD_DIR)/src/Window_cocoa.o
+default: $(TARGET).app
 
+
+#---------------------------------------------------------------------------------
+# executable generation
+#---------------------------------------------------------------------------------
 # macOS app bundle
 $(TARGET).app : $(TARGET)
-	mkdir -p $(TARGET)/Contents/MacOS
-	mkdir -p $(TARGET)/Contents/Resources
-	cp $(ENAME) $(TARGET)/Contents/MacOS/$(ENAME)
-	cp misc/macOS/Info.plist   $(TARGET)/Contents/Info.plist
-	cp misc/macOS/appicon.icns $(TARGET)/Contents/Resources/appicon.icns
+	mkdir -p $@/Contents/MacOS
+	mkdir -p $@/Contents/Resources
+	cp $< $@/Contents/MacOS/$<
+	cp misc/macOS/Info.plist   $@/Contents/Info.plist
+	cp misc/macOS/appicon.icns $@/Contents/Resources/appicon.icns
 
 include misc/makefiles/common_build.mk
+
+
+#---------------------------------------------------------------------------------
+# common targets
+#---------------------------------------------------------------------------------
+include misc/makefiles/common_targets.mk
+
+dist: $(TARGET)
+	$(call DIST_PKG_INIT_DEFAULT,$(TARGET))
+	$(call DIST_PKG_BUILD_TAR,$(TARGET))

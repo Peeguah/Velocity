@@ -1,3 +1,18 @@
+SOURCE_DIRS := src src/macclassic
+BUILD_DIR 	:= build/mac
+TARGET 		:= ClassiCube-ppc
+BUILD_ARCH  := ppc
+
+LIBS		:= -lm
+OEXT    	:= .elf
+# performance too slow if not in release mode
+RELEASE		:= 1
+include misc/makefiles/common_config.mk
+
+
+#------------------------------------------------
+# Compiler tools
+#------------------------------------------------
 # path to RETRO68
 RETRO68=../Retro68-build/toolchain
 
@@ -7,18 +22,7 @@ CXX=$(RETRO68)/bin/powerpc-apple-macos-g++
 MakePEF=$(RETRO68)/bin/MakePEF
 
 REZ=$(RETRO68)/bin/Rez
-RINCLUDES=$(PREFIX)/RIncludes
-REZFLAGS=-I$(RINCLUDES)
-
-SOURCE_DIRS := src src/macclassic
-LIBS		:= -lm
-OEXT    	:= .elf
-# performance too slow if not in release mode
-RELEASE		:= 1
-include misc/makefiles/common_config.mk
-
-TARGET		:= $(TARGET)-ppc
-BUILD_DIR 	:= build/mac_ppc
+REZFLAGS=-I$(PREFIX)/RIncludes
 
 
 #---------------------------------------------------------------------------------
@@ -35,3 +39,9 @@ $(TARGET).pef: $(TARGET).elf
 	$(MakePEF) $(TARGET).elf -o $(TARGET).pef
 
 include misc/makefiles/common_build.mk
+
+
+#---------------------------------------------------------------------------------
+# common targets
+#---------------------------------------------------------------------------------
+include misc/makefiles/common_targets.mk

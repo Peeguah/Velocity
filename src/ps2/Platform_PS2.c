@@ -1,6 +1,8 @@
 #define CC_XTEA_ENCRYPTION
 #define CC_NO_UPDATER
 #define CC_NO_DYNLIB
+#define CC_NO_OPEN
+#define CC_NO_CRASHHANDLER
 #define DEFAULT_COMMANDLINE_FUNC
 
 #include "../Stream.h"
@@ -149,16 +151,6 @@ cc_uint64 Stopwatch_Measure(void) {
 cc_uint64 Stopwatch_ElapsedMicroseconds(cc_uint64 beg, cc_uint64 end) {
 	if (end < beg) return 0;
 	return (end - beg) * US_PER_SEC / kBUSCLK;
-}
-
-
-/*########################################################################################################################*
-*-------------------------------------------------------Crash handling----------------------------------------------------*
-*#########################################################################################################################*/
-void CrashHandler_Install(void) { }
-
-void Process_Abort2(cc_result result, const char* raw_msg) {
-	Logger_DoAbort(result, raw_msg, NULL);
 }
 
 
@@ -505,9 +497,9 @@ static void Networking_Setup(void) {
 static void Networking_LoadIOPModules(void) {
 	int ret;
 	
-	SifLoadBuffer(DEV9_irx);
-	SifLoadBuffer(NETMAN_irx);
-	SifLoadBuffer(SMAP_irx);
+	SifLoadBuffer(ps2dev9_irx);
+	SifLoadBuffer(netman_irx);
+	SifLoadBuffer(smap_irx);
 }
 
 /*########################################################################################################################*
@@ -595,10 +587,8 @@ void Socket_Close(cc_socket s) {
 	lwip_close(s);
 }
 
-cc_result Socket_Connect(cc_socket s, cc_sockaddr* addr) {
-	struct sockaddr* raw = (struct sockaddr*)addr->data;
-
-	int res = lwip_connect(s, raw, addr->size);
+cc_result Socket_Connect(cc_socket s, const void* addr, int addrSize) {
+	int res = lwip_connect(s, (struct sockaddr*)addr, addrSize);
 	return res == -1 ? GetSocketError(s) : 0;
 }
 
@@ -656,15 +646,15 @@ static void USBStorage_LoadIOPModules(void) {
     // BDM, BDMFS_FATFS, USBMASS_BD - newer ?
     // USBHDFSD - older ?
     
-	SifLoadBuffer(USBD_irx);  
+	SifLoadBuffer(usbd_irx);  
 	//SifLoadBuffer(USBHDFSD_irx);
     
-	SifLoadBuffer(BDM_irx);
-	SifLoadBuffer(BDMFS_FATFS_irx);
+	SifLoadBuffer(bdm_irx);
+	SifLoadBuffer(bdmfs_fatfs_irx);
     
-	SifLoadBuffer(USBMASS_BD_irx);
-	SifLoadBuffer(USBMOUSE_irx);
-	SifLoadBuffer(USBKBD_irx);
+	SifLoadBuffer(usbmass_bd_irx);
+	SifLoadBuffer(ps2mouse_irx);
+	SifLoadBuffer(ps2kbd_irx);
 }
 
 // TODO Maybe needed ???
@@ -764,11 +754,6 @@ cc_bool Platform_DescribeError(cc_result res, cc_string* dst) {
 	return true;
 }
 
-cc_bool Process_OpenSupported = false;
-cc_result Process_StartOpen(const cc_string* args) {
-	return ERR_NOT_SUPPORTED;
-}
-
 void Process_Exit(cc_result code) { exit(code); }
 
 cc_result Process_StartGame2(const cc_string* args, int numArgs) {
@@ -776,9 +761,7 @@ cc_result Process_StartGame2(const cc_string* args, int numArgs) {
 	return SetGameArgs(args, numArgs);
 }
 
-cc_result Platform_SetDefaultCurrentDirectory(int argc, char **argv) {
-	return 0;
-}
+cc_result Platform_SetDefaultCurrentDirectory(void) { return 0; }
 
 void CPU_FlushDataCache(void* start, int length) {
 	SyncDCache(start, start + length);

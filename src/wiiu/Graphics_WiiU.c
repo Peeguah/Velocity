@@ -69,13 +69,29 @@ static void CompileFetchShaders(void) {
 /*########################################################################################################################*
 *---------------------------------------------------------Shaders---------------------------------------------------------*
 *#########################################################################################################################*/
-extern const uint8_t coloured_none_gsh[];
-extern const uint8_t textured_none_gsh[];
-extern const uint8_t textured_lin_gsh[];
-extern const uint8_t textured_exp_gsh[];
-extern const uint8_t offset_none_gsh[];
-extern const uint8_t offset_lin_gsh[];
-extern const uint8_t offset_exp_gsh[];
+static const uint8_t coloured_none_gsh[] = {
+	#embed "../../misc/wiiu/coloured_none.gsh"
+};
+
+static const uint8_t textured_none_gsh[] = {
+	#embed "../../misc/wiiu/textured_none.gsh"
+};
+static const uint8_t textured_lin_gsh[] = {
+	#embed "../../misc/wiiu/textured_lin.gsh"
+};
+static const uint8_t textured_exp_gsh[] = {
+	#embed "../../misc/wiiu/textured_exp.gsh"
+};
+
+static const uint8_t offset_none_gsh[] = {
+	#embed "../../misc/wiiu/offset_none.gsh"
+};
+static const uint8_t offset_lin_gsh[] = {
+	#embed "../../misc/wiiu/offset_lin.gsh"
+};
+static const uint8_t offset_exp_gsh[] = {
+	#embed "../../misc/wiiu/offset_exp.gsh"
+};
 
 #define VS_UNI_OFFSET_MVP   0
 #define VS_UNI_COUNT_MVP   16
@@ -191,7 +207,7 @@ GfxResourceID Gfx_AllocTexture(struct Bitmap* bmp, int rowWidth, cc_uint8 flags,
 	GX2Texture* tex = Mem_TryAllocCleared(1, sizeof(GX2Texture));
 	if (!tex) return NULL;
 
-	// TODO handle out of memory better
+	// TODO handle out of memory better. and not linear?
 	int width = bmp->width, height = bmp->height;
 	tex->surface.width    = width;
 	tex->surface.height   = height;
@@ -564,7 +580,7 @@ void Gfx_GetApiInfo(cc_string* info) {
 	PrintMaxTextureInfo(info);
 }
 
-void Gfx_OnWindowResize(void) {
+void Gfx_OnWindowResize(int width, int height) {
 
 }
 

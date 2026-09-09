@@ -312,7 +312,7 @@ void Game_UpdateDimensions(void) {
 
 static void Game_OnResize(void* obj) {
 	Game_UpdateDimensions();
-	Gfx_OnWindowResize();
+	Gfx_OnWindowResize(Game.Width, Game.Height);
 	Camera_UpdateProjection();
 }
 

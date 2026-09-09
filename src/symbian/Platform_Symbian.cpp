@@ -160,6 +160,10 @@ void CrashHandler_Install(void) {
 #endif
 }
 
+void CrashHandler_DumpRegisters(void* ctx, cc_string* str) {
+	// TODO Register dumping not implemented
+}
+
 void Process_Abort2(cc_result result, const char* raw_msg) {
 	crashed = true;
 	Logger_DoAbort(result, raw_msg, NULL);
@@ -548,10 +552,8 @@ void Socket_Close(cc_socket s) {
 	close(s);
 }
 
-cc_result Socket_Connect(cc_socket s, cc_sockaddr* addr) {
-	struct sockaddr* raw = (struct sockaddr*)addr->data;
-	
-	int res = connect(s, raw, addr->size);
+cc_result Socket_Connect(cc_socket s, const void* addr, int addrSize) {
+	int res = connect(s, (struct sockaddr*)addr, addrSize);
 	return res == -1 ? errno : 0;
 }
 
@@ -687,10 +689,8 @@ int Platform_GetCommandLineArgs(int argc, STRING_REF char** argv, cc_string* arg
 	return GetGameArgs(args);
 }
 
-cc_result Platform_SetDefaultCurrentDirectory(int argc, char **argv) {
-	// Directory is already set by platform: !:/private/e212a5c2
-	return 0;
-}
+// Directory is already set by platform: !:/private/e212a5c2
+cc_result Platform_SetDefaultCurrentDirectory(void) { return 0; }
 
 void Platform_ShareScreenshot(const cc_string* filename) {
 	

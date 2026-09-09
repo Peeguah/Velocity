@@ -43,9 +43,15 @@ void Gfx_Create(void) {
 	Gfx.Limitations  = GFX_LIMIT_MINIMAL | GFX_LIMIT_WORLD_ONLY;
 }
 
+static void FreeFramebuffer(void) {
+	Window_FreeFramebuffer(&fb_bmp);
+	fb_width  = 0;
+	fb_height = 0;
+}
+
 void Gfx_Free(void) { 
 	Gfx_FreeState();
-	Window_FreeFramebuffer(&fb_bmp);
+	FreeFramebuffer();
 }
 
 
@@ -851,7 +857,12 @@ cc_bool Gfx_GetUIOptions(struct MenuOptionsScreen* s) { return false; }
 void Gfx_BeginFrame(void) { }
 
 void Gfx_EndFrame(void) {
-	Rect2D r = { 0, 0, fb_width, fb_height };
+    Rect2D r;
+	r.x = 0;
+	r.y = 0; 
+	r.width  = fb_width;
+	r.height = fb_height;
+	
 	Window_DrawFramebuffer(r, &fb_bmp);
 }
 
@@ -859,19 +870,18 @@ void Gfx_SetVSync(cc_bool vsync) {
 	gfx_vsync = vsync;
 }
 
-void Gfx_OnWindowResize(void) {
-	// TODO ??????
-	//Window_FreeFramebuffer(&fb_bmp);
+void Gfx_OnWindowResize(int width, int height) {
+	if (fb_width || fb_height) FreeFramebuffer();
 
-	fb_width   = Game.Width;
-	fb_height  = Game.Height;
+	fb_width  = width;
+	fb_height = height;
 
-	Window_AllocFramebuffer(&fb_bmp, Game.Width, Game.Height);
+	Window_AllocFramebuffer(&fb_bmp, width, height);
 	colorBuffer = fb_bmp.scan0;
 	cb_stride   = fb_bmp.width;
 
-	Gfx_SetViewport(0, 0, Game.Width, Game.Height);
-	Gfx_SetScissor (0, 0, Game.Width, Game.Height);
+	Gfx_SetViewport(0, 0, width, height);
+	Gfx_SetScissor (0, 0, width, height);
 }
 
 void Gfx_SetViewport(int x, int y, int w, int h) {

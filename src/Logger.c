@@ -186,7 +186,7 @@ void Logger_IOWarn2(cc_result res, const char* action, const struct cc_filepath_
 *-----------------------------------------------------CPU registers-------------------------------------------------------*
 *#########################################################################################################################*/
 #if defined CC_BUILD_WIN
-	#include "win32/Plat_Win32.inc"
+	/* Done in Platform_Windows */
 #elif defined CC_BUILD_DARWIN
 	#include "posix/Plat_Darwin.inc"
 #elif defined CC_BUILD_ANDROID
@@ -207,7 +207,7 @@ void Logger_IOWarn2(cc_result res, const char* action, const struct cc_filepath_
 	#include "posix/Plat_SerenityOS.inc"
 #elif defined CC_BUILD_IRIX
 	#include "posix/Plat_IRIX.inc"
-#else
+#elif defined CC_BUILD_POSIX
 void CrashHandler_DumpRegisters(void* ctx, cc_string* str) {
 	/* Register dumping not implemented */
 }
@@ -748,7 +748,11 @@ static void CloseLogFile(void) {
 
 void Logger_DoAbort(cc_result result, const char* raw_msg, void* ctx) {
 	static const cc_string backtrace = String_FromConst("-- backtrace --" _NL);
+#if CC_BUILD_MAXSTACK < (64 * 1024)
+	cc_string msg; char msgBuffer[256 + 1];
+#else
 	cc_string msg; char msgBuffer[3070 + 1];
+#endif
 	String_InitArray_NT(msg, msgBuffer);
 
 	String_AppendConst(&msg, "ClassiCube crashed." _NL);

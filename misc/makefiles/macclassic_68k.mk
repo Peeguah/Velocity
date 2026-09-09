@@ -1,3 +1,26 @@
+SOURCE_DIRS := src src/macclassic
+BUILD_DIR 	:= build/mac
+
+LIBS		:= -lm
+OEXT    	:= .code.bin
+# performance too slow if not in release mode
+RELEASE		:= 1
+include misc/makefiles/common_config.mk
+
+ifdef ARCH_68040
+	TARGET		:= ClassiCube-68040
+	BUILD_ARCH  := 68040
+	CFLAGS		+= -march=68040
+else
+	TARGET		:= ClassiCube-68k
+	BUILD_ARCH  := 68k
+	CFLAGS		+= -DCC_BUILD_FPU_MODE=CC_FPU_MODE_MINIMAL -DCC_BUILD_TINYMEM -DCC_GFX_BACKEND=CC_GFX_BACKEND_SOFTMIN
+endif
+
+
+#------------------------------------------------
+# Compiler tools
+#------------------------------------------------
 # path to RETRO68
 RETRO68=../Retro68-build/toolchain
 
@@ -6,25 +29,7 @@ CC=$(RETRO68)/bin/m68k-apple-macos-gcc
 CXX=$(RETRO68)/bin/m68k-apple-macos-g++
 
 REZ=$(RETRO68)/bin/Rez
-RINCLUDES=$(PREFIX)/RIncludes
-REZFLAGS=-I$(RINCLUDES)
-
-SOURCE_DIRS := src src/macclassic
-LIBS		:= -lm
-OEXT    	:= .code.bin
-# performance too slow if not in release mode
-RELEASE		:= 1
-include misc/makefiles/common_config.mk
-
-ifdef ARCH_68040
-	TARGET		:= $(TARGET)-68040
-	BUILD_DIR 	:= build/mac_68040
-	CFLAGS		+= -march=68040
-else
-	TARGET		:= $(TARGET)-68k
-	BUILD_DIR 	:= build/mac_68k
-	CFLAGS		+= -DCC_BUILD_FPU_MODE=CC_FPU_MODE_MINIMAL -DCC_BUILD_TINYMEM -DCC_GFX_BACKEND=CC_GFX_BACKEND_SOFTMIN
-endif
+REZFLAGS=-I$(PREFIX)/RIncludes
 
 
 #---------------------------------------------------------------------------------
@@ -38,3 +43,9 @@ $(TARGET).bin $(TARGET).APPL $(TARGET).dsk: $(TARGET).code.bin
 		-o $(TARGET).bin --cc $(TARGET).APPL --cc $(TARGET).dsk
 
 include misc/makefiles/common_build.mk
+
+
+#---------------------------------------------------------------------------------
+# common targets
+#---------------------------------------------------------------------------------
+include misc/makefiles/common_targets.mk

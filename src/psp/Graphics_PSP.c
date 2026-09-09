@@ -68,7 +68,7 @@ static void guInit(void) {
 	sceGuEnable(GU_CLIP_PLANES); // TODO: swap near/far instead of this?
 	sceGuTexFunc(GU_TFX_MODULATE, GU_TCC_RGBA);
 
-	Gfx_OnWindowResize();
+	Gfx_OnWindowResize(Game.Width, Game.Height);
 	sceGuClutMode(GU_PSM_8888, 0, 0xFF, 0); // 32 bit CLUT entries
 	
 	sceGuFinish();
@@ -604,9 +604,9 @@ void Gfx_EndFrame(void) {
 	CLIPPED = MACLIPPED = UNCLIPPED = 0;
 }
 
-void Gfx_OnWindowResize(void) {
-	Gfx_SetViewport(0, 0, Game.Width, Game.Height);
-	Gfx_SetScissor( 0, 0, Game.Width, Game.Height);
+void Gfx_OnWindowResize(int width, int height) {
+	Gfx_SetViewport(0, 0, width, height);
+	Gfx_SetScissor( 0, 0, width, height);
 }
 
 void Gfx_SetViewport(int x, int y, int w, int h) {

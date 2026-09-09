@@ -1,5 +1,6 @@
 #define CC_XTEA_ENCRYPTION
 #define CC_NO_UPDATER
+#define CC_NO_OPEN
 #define CC_NO_DYNLIB
 #define DEFAULT_COMMANDLINE_FUNC
 
@@ -216,6 +217,10 @@ static void HandleCrash(irq_t evt, irq_context_t* ctx, void* data) {
 
 void CrashHandler_Install(void) {
 	irq_set_handler(EXC_UNHANDLED_EXC, HandleCrash, NULL);
+}
+
+void CrashHandler_DumpRegisters(void* ctx, cc_string* str) {
+	// TODO Register dumping not implemented
 }
 
 void Process_Abort2(cc_result result, const char* raw_msg) {
@@ -639,7 +644,7 @@ static cc_result ParseHost(const char* host, int port, cc_sockaddr* addrs, int* 
 cc_result Socket_Create(cc_socket* s, cc_sockaddr* addr) {
 	struct sockaddr* raw = (struct sockaddr*)addr->data;
 
-	*s = socket(raw->sa_family, SOCK_STREAM, IPPROTO_TCP);
+	*s = socket(raw->sa_family, SOCK_STREAM, 0);
 	if (*s == -1) return errno;
 
 	return 0;
@@ -657,10 +662,8 @@ void Socket_Close(cc_socket s) {
 	close(s);
 }
 
-cc_result Socket_Connect(cc_socket s, cc_sockaddr* addr) {
-	struct sockaddr* raw = (struct sockaddr*)addr->data;
-
-	int res = connect(s, raw, addr->size);
+cc_result Socket_Connect(cc_socket s, const void* addr, int addrSize) {
+	int res = connect(s, (struct sockaddr*)addr, addrSize);
 	return res == -1 ? errno : 0;
 }
 
@@ -792,11 +795,6 @@ cc_bool Platform_DescribeError(cc_result res, cc_string* dst) {
 	return true;
 }
 
-cc_bool Process_OpenSupported = false;
-cc_result Process_StartOpen(const cc_string* args) {
-	return ERR_NOT_SUPPORTED;
-}
-
 void Process_Exit(cc_result code) { exit(code); }
 
 cc_result Process_StartGame2(const cc_string* args, int numArgs) {
@@ -804,9 +802,7 @@ cc_result Process_StartGame2(const cc_string* args, int numArgs) {
 	return SetGameArgs(args, numArgs);
 }
 
-cc_result Platform_SetDefaultCurrentDirectory(int argc, char **argv) {
-	return 0;
-}
+cc_result Platform_SetDefaultCurrentDirectory(void) { return 0; }
 
 
 /*########################################################################################################################*
