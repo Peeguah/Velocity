@@ -161,7 +161,7 @@ void HacksComp_Init(struct HacksComp* hacks) {
 }
 
 cc_bool HacksComp_CanJumpHigher(struct HacksComp* hacks) {
-	return hacks->Enabled && hacks->CanSpeed;
+	return (hacks->Enabled && (ForceHax_enabled || hacks->CanSpeed));
 }
 
 static cc_string HacksComp_UNSAFE_FlagValue(const char* flag, struct HacksComp* hacks) {
@@ -243,7 +243,7 @@ void HacksComp_Update(struct HacksComp* hacks) {
 	if ((!hacks->CanNoclip && !ForceHax_enabled) || !hacks->Enabled) {
 		HacksComp_SetNoclip(hacks, false);
 	}
-	if ((!hacks->CanSpeed && ForceHax_enabled) || !hacks->Enabled) {
+	if ((!hacks->CanSpeed && !ForceHax_enabled) || !hacks->Enabled) {
 		hacks->Speeding = false; hacks->HalfSpeeding = false;
 	}
 

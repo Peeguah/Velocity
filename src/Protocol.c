@@ -776,7 +776,7 @@ static void Classic_ReadAbsoluteLocation(cc_uint8* data, EntityID id, cc_uint8 f
 	struct LocationUpdate update;
 	int x, y, z;
 	cc_uint8 mode;
-	if (NoSetBack_enabled && id == 0) return;
+	if (NoSetBack_enabled || id == 0) return;
 
 	if (IsSupported(extEntityPos_Ext)) {
 		x = (int)Mem_ReadU32_BE(&data[0]);
@@ -1576,7 +1576,7 @@ static void CPE_ExtEntityTeleport(cc_uint8* data) {
 	EntityID id = *data++;
 	cc_uint8 packetFlags = *data++;
 	cc_uint8 flags = 0;
-	if (NoSetBack_enabled && id == 0) return;
+	if (NoSetBack_enabled || id == 0) return;
 
 	/* bit  0    includes position */
 	/* bits 1-2  position mode(absolute_instant / absolute_smooth / relative_smooth / relative_seamless) */
