@@ -230,3 +230,4 @@ UpgradeLog*.htm
 .project
 
 cef/
+.idea/
