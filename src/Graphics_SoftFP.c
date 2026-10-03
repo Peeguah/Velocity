@@ -1,6 +1,7 @@
+#define CC_DYNAMIC_VBS_ARE_STATIC
+#define CC_SCRATCH_VBS_ARE_SHARED_DYNAMIC
 #include "Core.h"
 #if CC_GFX_BACKEND == CC_GFX_BACKEND_SOFTFP
-#define CC_DYNAMIC_VBS_ARE_STATIC
 #define OVERRIDE_BEGEND2D_FUNCTIONS
 #include "_GraphicsBase.h"
 #include "Errors.h"
@@ -601,9 +602,10 @@ static void DrawSprite2D(VertexFixed* V0, VertexFixed* V1, VertexFixed* V2) {
                 G = BitmapCol_G(color);
                 B = BitmapCol_B(color);
 
-                R = (R * A + dstR * (255 - A)) >> 8;
-                G = (G * A + dstG * (255 - A)) >> 8;
-                B = (B * A + dstB * (255 - A)) >> 8;
+				// R = (R * A + dstR * (255 - A)) >> 8;
+				R = dstR + ((A * (R - dstR)) >> 8);
+				G = dstG + ((A * (G - dstG)) >> 8);
+				B = dstB + ((A * (B - dstB)) >> 8);
                 color = BitmapCol_Make(R, G, B, 0xFF);
             }
 
@@ -959,9 +961,10 @@ static void DrawTriangle3D(VertexFixed* V0, VertexFixed* V1, VertexFixed* V2) {
                     int dstG = BitmapCol_G(dst);
                     int dstB = BitmapCol_B(dst);
 
-                    int finR = (Rloc * Aloc + dstR * (255 - Aloc)) >> 8;
-                    int finG = (Gloc * Aloc + dstG * (255 - Aloc)) >> 8;
-                    int finB = (Bloc * Aloc + dstB * (255 - Aloc)) >> 8;
+					// int finR = (Rloc * Aloc + dstR * (255 - Aloc)) >> 8;
+                    int finR = dstR + ((Aloc * (Rloc - dstR)) >> 8);
+                    int finG = dstG + ((Gloc * (Gloc - dstG)) >> 8);
+                    int finB = dstB + ((Bloc * (Bloc - dstB)) >> 8);
                     colorBuffer[cb_index] = BitmapCol_Make(finR, finG, finB, 0xFF);
                 }
             }
@@ -1062,9 +1065,10 @@ static void DrawTriangle2D(VertexFixed* V0, VertexFixed* V1, VertexFixed* V2) {
                 int dstG = BitmapCol_G(dst);
                 int dstB = BitmapCol_B(dst);
 
-                R = (R * A + dstR * (255 - A)) >> 8;
-                G = (G * A + dstG * (255 - A)) >> 8;
-                B = (B * A + dstB * (255 - A)) >> 8;
+				// R = (R * A + dstR * (255 - A)) >> 8;
+				R = dstR + ((A * (R - dstR)) >> 8);
+				G = dstG + ((A * (G - dstG)) >> 8);
+				B = dstB + ((A * (B - dstB)) >> 8);
             }
 
             colorBuffer[cb_index] = BitmapCol_Make(R, G, B, 0xFF);
