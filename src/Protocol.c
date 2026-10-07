@@ -696,7 +696,7 @@ static void Classic_EntityTeleport(cc_uint8* data) {
 static void Classic_RelPosAndOrientationUpdate(cc_uint8* data) {
 	struct LocationUpdate update;
 	EntityID id = data[0];
-	if (NoSetBack_enabled) return;
+	if (NoSetBack_enabled || (Spin_enabled && Spin_ServerSide && id == ENTITIES_SELF_ID)) return;
 
 	update.flags = LU_HAS_POS | LU_HAS_YAW | LU_HAS_PITCH | LU_POS_RELATIVE_SMOOTH | LU_ORI_INTERPOLATE;
 	update.pos.x = (cc_int8)data[1] / 32.0f;

@@ -229,3 +229,4 @@ UpgradeLog*.htm
 *.err
 cef/
 .idea/
+.vscode/settings.json
