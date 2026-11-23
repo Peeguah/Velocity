@@ -12,7 +12,7 @@
 Massive thanks to Hexcode, root & SuperZPMax for helping me out and being such awesome people
 </p>
 
-## Downloads (click the top workflow to download)
+## Downloads (click the top workflow to download) (Requres Github Account)
 <!-- TODO ADD PROPER INSTRUCTIONS FOR 7 YEAR OLDS -->
 
 Instructions:
