@@ -191,9 +191,6 @@ void Gfx_SetScratchVbData(GfxResourceID vb, void* vertices, int vCount) {
 static struct Matrix _view, _proj, _mvp;
 static cc_bool gfx_texTransform;
 static float _texX, _texY;
-static PackedCol gfx_fogColor;
-static float gfx_fogEnd = -1.0f, gfx_fogDensity = -1.0f;
-static int gfx_fogMode = -1;
 
 /* shader programs (emulate fixed function) */
 static struct GLShader {
@@ -281,10 +278,14 @@ static void GenFragmentShader(const struct GLShader* shader, cc_string* dst) {
 	if (uv) String_AppendConst(dst, "  vec4 col = texture2D(texImage, out_uv) * out_col;\n");
 	else    String_AppendConst(dst, "  vec4 col = out_col;\n");
 	if (al) String_AppendConst(dst, "  if (col.a < 0.5) discard;\n");
-	if (fm) String_AppendConst(dst, "  float depth = 1.0 / gl_FragCoord.w;\n");
-	if (fl) String_AppendConst(dst, "  float f = clamp(1.0 - depth * fogEnd, 0.0, 1.0);\n");
+
+	if (fl) String_AppendConst(dst, "  float depth = 1.0 / gl_FragCoord.w;\n");
+	if (fl) String_AppendConst(dst, "  float f = clamp(depth * fogEnd, 0.0, 1.0);\n");
+	if (fl) String_AppendConst(dst, "  col.rgb = mix(col.rgb, fogCol, f);\n");
+
+	if (fd) String_AppendConst(dst, "  float depth = 1.0 / gl_FragCoord.w;\n");
 	if (fd) String_AppendConst(dst, "  float f = clamp(exp(fogDensity * depth), 0.0, 1.0);\n");
-	if (fm) String_AppendConst(dst, "  col.rgb = mix(fogCol, col.rgb, f);\n");
+	if (fd) String_AppendConst(dst, "  col.rgb = mix(fogCol, col.rgb, f);\n");
 	
 	if (fl || fd || fm) AddPostProcessing(dst);
 	String_AppendConst(dst,         "  gl_FragColor = col;\n");
@@ -471,39 +472,28 @@ void Gfx_BindTexture(GfxResourceID texId) {
 *-----------------------------------------------------State management----------------------------------------------------*
 *#########################################################################################################################*/
 void Gfx_SetFog(cc_bool enabled) { gfx_fogEnabled = enabled; SwitchProgram(); }
-void Gfx_SetFogCol(PackedCol color) {
-	if (color == gfx_fogColor) return;
-	gfx_fogColor = color;
+
+static void SetFogColor(PackedCol color) {
 	DirtyUniform(UNI_FOG_COL);
 	ReloadUniforms();
 }
 
-void Gfx_SetFogDensity(float value) {
-	if (gfx_fogDensity == value) return;
-	gfx_fogDensity = value;
+static void SetFogDensity(float value) {
 	DirtyUniform(UNI_FOG_DENS);
 	ReloadUniforms();
 }
 
-void Gfx_SetFogEnd(float value) {
-	if (gfx_fogEnd == value) return;
-	gfx_fogEnd = value;
+static void SetFogEnd(float value) {
 	DirtyUniform(UNI_FOG_END);
 	ReloadUniforms();
 }
 
-void Gfx_SetFogMode(FogFunc func) {
-	if (gfx_fogMode == func) return;
-	gfx_fogMode = func;
-	SwitchProgram();
-}
+static void SetFogMode(FogFunc func) { SwitchProgram(); }
 
 static void SetAlphaTest(cc_bool enabled) { SwitchProgram(); }
 
 void Gfx_DepthOnlyRendering(cc_bool depthOnly) {
-	cc_bool enabled = !depthOnly;
-	SetColorWrite(enabled & gfx_colorMask[0], enabled & gfx_colorMask[1], 
-				  enabled & gfx_colorMask[2], enabled & gfx_colorMask[3]);
+    DefaultDepthOnlyRendering(depthOnly);
 }
 
 
@@ -695,11 +685,7 @@ static void GL_SetupVbTextured_Range(int startVertex) {
 	glVertexAttribPointer(2, 2, GL_FLOAT,         false, SIZEOF_VERTEX_TEXTURED, uint_to_ptr(offset + 16));
 }
 
-void Gfx_SetVertexFormat(VertexFormat fmt) {
-	if (fmt == gfx_format) return;
-	gfx_format = fmt;
-	gfx_stride = strideSizes[fmt];
-
+static void SetVertexFormat(VertexFormat fmt) {
 	if (fmt == VERTEX_FORMAT_TEXTURED) {
 		glEnableVertexAttribArray(2);
 		gfx_setupVBFunc      = GL_SetupVbTextured;

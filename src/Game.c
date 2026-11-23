@@ -498,20 +498,24 @@ static void Render3DFrame(float delta, float t) {
 	Gfx_LoadMVP(&Gfx.View, &Gfx.Projection, &mvp);
 	Frustum_CalcPlanes(&mvp);
 
+	Gfx_SetDepthTest(true);
+	Gfx_SetDepthWrite(true);
+
 	if (EnvRenderer_ShouldRenderSkybox()) EnvRenderer_RenderSkybox();
 	AxisLinesRenderer_Render();
 	Entities_RenderModels(delta, t);
 	EntityNames_Render();
 
 	Particles_Render(t);
-	EnvRenderer_RenderSky();
-	EnvRenderer_RenderClouds();
 
 	MapRenderer_Update(delta);
 	MapRenderer_RenderNormal(delta);
 	EnvRenderer_RenderMapSides();
 
 	EntityShadows_Render();
+	EnvRenderer_RenderClouds();
+	EnvRenderer_RenderSky();
+
 	if (Game_SelectedPos.valid && !Game_HideGui) {
 		SelOutlineRenderer_Render(&Game_SelectedPos, true);
 	}
@@ -657,7 +661,8 @@ static void LimitFPS(void) {
 
 static CC_INLINE void Game_DrawFrame(float delta, float t) {
 	int i;
-	if (NoRender_enabled && NoRender_everything) return;
+	if (NoRender_enabled && NoRender_everything) return;	/* int MS = delta * 1000; Platform_Log1("ELAPSED: %i ms", &MS); */
+
 	if (!Gui_GetBlocksWorld()) {
 		Camera.Active->GetPickedBlock(&Game_SelectedPos); /* TODO: only pick when necessary */
 		Camera_KeyLookUpdate(delta);
@@ -696,6 +701,13 @@ static CC_INLINE void Game_DrawFrame(float delta, float t) {
 
 #ifdef CC_BUILD_SPLITSCREEN
 static void DrawSplitscreen(float delta, float t, int i, int x, int y, int w, int h) {
+	if (Gfx.ScissorAlignment) {
+		int mask  = Gfx.ScissorAlignment - 1;
+
+		int xOver = x & mask; x -= xOver; w = (w + xOver) & ~mask;
+		int yOver = y & mask; y -= yOver; h = (h + yOver) & ~mask;
+	}
+
 	Gfx_SetViewport(x, y, w, h);
 	Gfx_SetScissor( x, y, w, h);
 	Game.CurrentState = i;

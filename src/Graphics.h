@@ -81,6 +81,9 @@ CC_VAR extern struct _GfxData {
 	int MinTexWidth, MinTexHeight;
 	cc_bool  ReducedPerfMode;
 	cc_uint8 ReducedPerfModeCooldown;
+	/* Alignment in pixels of scissoring regions (usally no alignment is required) */
+	/*  However e.g. dreamcast GPU can only scissor on 32x32 tiled boundaries */
+	cc_uint8 ScissorAlignment;
 	/* Default index buffer for a triangle list representing quads */
 	GfxResourceID DefaultIb;
 } Gfx;
@@ -113,6 +116,12 @@ extern const cc_string Gfx_LowPerfMessage;
 #define GFX_MAX_VERTICES 65536
 
 void Gfx_RecreateTexture(GfxResourceID* tex, struct Bitmap* bmp, cc_uint8 flags, cc_bool mipmaps);
+
+#if (CC_GFX_BACKEND == CC_GFX_BACKEND_D3D9) || (CC_GFX_BACKEND == CC_GFX_BACKEND_D3D11)
+	#define GFX_CLIPSPACE_ONE_TO_ZERO
+#else
+	#define GFX_CLIPSPACE_NEGONE_TO_ONE
+#endif
 
 
 /*########################################################################################################################*
@@ -164,11 +173,13 @@ CC_API void Gfx_DisableMipmaps(void);
 
 
 /*########################################################################################################################*
-*------------------------------------------------------Frame management---------------------------------------------------*
+*------------------------------------------------------Buffer clearing----------------------------------------------------*
 *#########################################################################################################################*//*
 SUMMARY:
-	The frame management functions manage frame related functionality
-	(beginning frames, displaying framebuffers, and resetting rendering buffers)
+	Clears/Fills colour buffer and/or depth buffer
+IMPLEMENTATION NOTES:
+	Some graphics backends do not support explicit clearing, 
+     but instead implicitly clear as part of a new frame
 USAGE NOTES:
 	There is usually no need to call these functions
 */
@@ -177,11 +188,22 @@ typedef enum GfxBuffers_ {
 	GFX_BUFFER_DEPTH = 2
 } GfxBuffers;
 
-/* Clears the given rendering buffer(s) to their default values. */
+/* Clears the colour and/or depth buffer to their default values. */
 /* buffers can be either GFX_BUFFER_COLOR or GFX_BUFFER_DEPTH, or both */
 CC_API void Gfx_ClearBuffers(GfxBuffers buffers);
 /* Sets the default colour that the colour buffer is cleared to */
 CC_API void Gfx_ClearColor(PackedCol color);
+
+
+/*########################################################################################################################*
+*------------------------------------------------------Frame management---------------------------------------------------*
+*#########################################################################################################################*//*
+SUMMARY:
+	The frame management functions manage frame related functionality
+	(beginning frames, displaying framebuffers, synchronising rendering with monitor refresh)
+USAGE NOTES:
+	There is usually no need to call these functions
+*/
 
 /* Sets up state for rendering a new frame */
 void Gfx_BeginFrame(void);
@@ -271,8 +293,8 @@ CC_API void Gfx_DepthOnlyRendering(cc_bool depthOnly);
 *#########################################################################################################################*/
 /*
 SUMMARY:
-	Index buffers are used to select the triangle vertices from the active vertex buffer
-	  when rendering using the Gfx_DrawVb_IndexedTris/Gfx_DrawVb_IndexedTris_Range APIs
+	Index buffers are used to select vertices from the active vertex buffer when
+	  rendering triangles using the Gfx_DrawVb_IndexedTris/Gfx_DrawVb_IndexedTris_Range APIs
 IMPLEMENTATION NOTES:
 	All of the OpenGL and Direct3D rendering backends fully support index buffers
 	However, some console ports rendering backends do not support index buffers
@@ -304,7 +326,7 @@ IMPLEMENTATION NOTES:
 	Vertex buffers may be stored in VRAM or converted into a more efficient internal format
 	For example, the PS1 and DS ports convert XYZ floats into fixed point integers
 USAGE NOTES:
-	Static vertex buffers should be used for data that very rarely changes
+	Static  vertex buffers should be used for data that very rarely changes
 	Dynamic vertex buffers should be used for frequently changing data (e.g. UI)
     Scratch vertex buffers should be used for data that changes every frame
 */
