@@ -93,6 +93,7 @@ Instructions:
 - DontHoldThis
 - HeadFlip
 - ForcePlace
+- ForceDelete
 
 ## Current Features
 - Coloured F3 Menu

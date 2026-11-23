@@ -413,7 +413,7 @@ static void InputHandler_DeleteBlock(void) {
 	if (!Game_SelectedPos.valid || !World_Contains(pos.x, pos.y, pos.z)) return;
 
 	old = World_GetBlock(pos.x, pos.y, pos.z);
-	if (Blocks.Draw[old] == DRAW_GAS || !Blocks.CanDelete[old]) return;
+	if (Blocks.Draw[old] == DRAW_GAS || (!Blocks.CanDelete[old] && !ForceDelete_enabled)) return;
 
 	Game_ChangeBlock(pos.x, pos.y, pos.z, BLOCK_AIR);
 	Event_RaiseBlock(&UserEvents.BlockChanged, pos, old, BLOCK_AIR);
@@ -429,6 +429,8 @@ static void InputHandler_PlaceBlock(void) {
 	block = Inventory_SelectedBlock;
 	if (AutoRotate_Enabled) block = AutoRotate_RotateBlock(block);
 
+
+	if (!ForcePlace_enabled) {
 	if (Game_CanPick(old) || !Blocks.CanPlace[block]) return;
 	/* air-ish blocks can only replace over other air-ish blocks */
 	if (Blocks.Draw[block] == DRAW_GAS && Blocks.Draw[old] != DRAW_GAS) return;
@@ -436,7 +438,8 @@ static void InputHandler_PlaceBlock(void) {
 	/* undeletable gas blocks can't be replaced with other blocks */
 	if (Blocks.Collide[old] == COLLIDE_NONE && !Blocks.CanDelete[old]) return;
 
-	if (!CheckIsFree(block) && !ForcePlace_enabled) return;
+	if (!CheckIsFree(block)) return;
+	}
 
 	Game_ChangeBlock(pos.x, pos.y, pos.z, block);
 	Event_RaiseBlock(&UserEvents.BlockChanged, pos, old, block);

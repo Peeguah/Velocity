@@ -44,6 +44,7 @@ extern cc_bool Spin_enabled;
 extern cc_bool Glide_enabled;
 extern cc_bool NoKnockback_enabled;
 extern cc_bool ForcePlace_enabled;
+extern cc_bool ForceDelete_enabled;
 // extern cc_bool AutoJump_always;
 // extern cc_bool ArrayList_enabled;
 extern int SustainY;

@@ -65,6 +65,7 @@ cc_bool Phase_enabled = false;
 cc_bool Glide_enabled = false;
 cc_bool NoKnockback_enabled = false;
 cc_bool ForcePlace_enabled = false;
+cc_bool ForceDelete_enabled = false;
 // cc_bool ArrayList_enabled = false;
 // cc_bool AutoJump_always = true;
 float SpinSpeed = 1;
@@ -1972,6 +1973,23 @@ static struct ChatCommand ForcePlaceCommand = {
 };
 
 /*########################################################################################################################*
+*------------------------------------------------------ForceDelete---------------------------------------------------------*
+*#########################################################################################################################*/
+
+static void ForceDeleteCommand_Execute(const cc_string* args, int argsCount) {
+	ForceDelete_enabled = !ForceDelete_enabled;
+	Chat_AddRaw(ForceDelete_enabled ? "&aForceDelete enabled" : "&cForceDelete disabled");
+}
+
+static struct ChatCommand ForceDeleteCommand = {
+	"ForceDelete", ForceDeleteCommand_Execute, 0,
+	{
+		"&a/client ForceDelete",
+		"&eForces block deletion.",
+	}
+};
+
+/*########################################################################################################################*
 *------------------------------------------------------Commands component-------------------------------------------------*
 *#########################################################################################################################*/
 static void OnInit(void) {
@@ -2032,6 +2050,7 @@ static void OnInit(void) {
 	Commands_Register(&GlideCommand);
 	Commands_Register(&NoKnockbackCommand);
 	Commands_Register(&ForcePlaceCommand);
+	Commands_Register(&ForceDeleteCommand);
 	// Commands_Register(&ArrayListCommand);
 	/*Velocity Events*/
 	ScheduledTask_Add(0.01, Spin_Tick);
